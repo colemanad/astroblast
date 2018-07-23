@@ -1,3 +1,5 @@
+from random import randint
+
 from gamemodule import GameModule, MESSAGES
 
 class GameServer(GameModule):
@@ -9,3 +11,6 @@ class GameServer(GameModule):
     def process(self, msg):
         if msg[0] == MESSAGES.TERMINATE:
             self.mainQueue.put((MESSAGES.TERMINATE, -1), True)
+        # else:
+        #     outMsg = (MESSAGES.TEST, randint(0, 64))
+        #     self.sendMsg(outMsg)

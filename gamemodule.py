@@ -1,9 +1,9 @@
 from threading import Thread
 from constantly import ValueConstant, Values
-from random import randint
 
 # Message type constants
 class MESSAGES(Values):
+    NONE = ValueConstant("0")
     TEST = ValueConstant("1")
     TERMINATE = ValueConstant("-1")
 
@@ -32,12 +32,15 @@ class GameModule(Thread):
     def run(self):
         while True:
             # Check queue for new messages & respond to each
-            msgType, msgContent = self.inQueue.get()
-            print("%s: received %s - %d" % (self.name, msgType.name, msgContent))
-            self.inQueue.task_done()
-            outMsg = (MESSAGES.TEST, randint(0, 64))
-            self.sendMsg(outMsg)
+            msgType = MESSAGES.NONE
+            msgContent = 0
 
+            if not self.inQueue.empty():
+                msgType, msgContent = self.inQueue.get_nowait()
+                print("%s: received %s - %d" % (self.name, msgType.name, msgContent))
+                self.inQueue.task_done()
+
+            # print("%s: calling process" % (self.name))
             self.process((msgType, msgContent))
 
             if msgType == MESSAGES.TERMINATE:

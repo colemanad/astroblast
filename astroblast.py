@@ -11,10 +11,34 @@
 from queue import Queue
 from threading import Thread
 from constantly import ValueConstant, Values
+from os import path
+
+import pygame
 
 from gamemodule import MESSAGES
 from client import GameClient
 from server import GameServer
+
+# Constants
+# Will use fixed screen dimensions for now
+WIDTH = 800
+HEIGHT = 600
+FPS = 60
+
+WHITE = (255, 255, 255)
+BLACK = (0, 0, 0)
+RED = (255, 0, 0)
+GREEN = (0, 255, 0)
+BLUE = (0, 0, 255)
+YELLOW = (255, 255, 0)
+
+# Initialize pyGame
+pygame.init()
+screen = pygame.display.set_mode((WIDTH, HEIGHT))
+pygame.display.set_caption("AstroBlast!")
+
+# Paths
+assets_dir = path.join(path.dirname(__file__), 'assets')
 
 def main():
     # queue of server->main process messages
@@ -23,8 +47,6 @@ def main():
     serverQueue = Queue()
     # queue of messages for the client
     clientQueue = Queue()
-    # put a message in the client queue to get execution started
-    clientQueue.put((MESSAGES.TEST, -1),True)
 
     server = GameServer(serverQueue, clientQueue, mainQueue)
     client = GameClient(clientQueue, serverQueue)
@@ -38,6 +60,8 @@ def main():
         if msgType == MESSAGES.TERMINATE:
             print("Exiting...")
             break
+
+    pygame.quit()
 
 if __name__ == '__main__':
     main()

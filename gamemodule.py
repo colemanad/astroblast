@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 from constants import MESSAGES
 
 # Base class for server & client modules

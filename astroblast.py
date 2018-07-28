@@ -1,4 +1,5 @@
-#!/usr/bin/env Python
+#!/usr/bin/env python3
+
 # AstroBlast!
 # Copyright Andrew Coleman and Zachary Conlyn
 # CMSC 495-7380, Group 4

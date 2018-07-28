@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 from constantly import ValueConstant, Values
 
 # pyGame-centric constants

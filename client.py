@@ -30,18 +30,20 @@ class GameClient(GameModule):
         self.name = "Client"
 
         # Initialize pyGame
-        pygame.init()
-        self.screen = pygame.display.set_mode((WIDTH, HEIGHT))
-        pygame.display.set_caption("AstroBlast!")
+        # self.screen = pygame.display.set_mode((WIDTH, HEIGHT))
+        # pygame.display.set_caption("AstroBlast!")
         self.clock = pygame.time.Clock()
     
     # Sends quit message
     def quit(self):
-        pygame.quit()
         self.sendMsg((MESSAGES.TERMINATE, -1))
         self.shouldTerminate = True
     
-    def process(self, msg):
+    def processMsg(self, msg):
+        pass
+    
+    # Update game state/input state
+    def update(self):
         self.clock.tick(FPS)
         # print(self.clock.get_time())
         # print(self.clock.get_fps())

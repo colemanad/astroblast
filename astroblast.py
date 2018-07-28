@@ -52,14 +52,24 @@ def main():
     client = GameClient(clientQueue, serverQueue)
 
     server.start()
-    client.start()
+    # client.start()
 
     # Just infinitely loop for now
-    while True:
-        msgType, msgContent = mainQueue.get()
+    running = True
+    while running:
+        # print("before checkMsgs")
+        client.checkMsgs()
+        client.update()
+        # print("after checkMsgs")
+        msgType = MESSAGES.NONE
+        msgContent = 0
+        if not mainQueue.empty():
+            msgType, msgContent = mainQueue.get_nowait()
+        # print("after mq.get")
         if msgType == MESSAGES.TERMINATE:
             print("Exiting...")
-            break
+            running = False
+        # print("after terminate check")
 
     pygame.quit()
 

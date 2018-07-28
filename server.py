@@ -1,18 +1,23 @@
-from random import randint
 from threading import Thread
 
-from gamemodule import GameModule, MESSAGES
+from gamemodule import GameModule
+from constants import MESSAGES
 
 class GameServer(GameModule, Thread):
-    def __init__(self, inQueue, outQueue, mainQueue):
+    def __init__(self, inQueue, outQueue):
         Thread.__init__(self)
         GameModule.__init__(self, inQueue, outQueue)
         self.name = "Server"
-        self.mainQueue = mainQueue
+
+    # Gets called at thread start
+    def run(self):
+        while self.running:
+            self.check_msgs()
+            self.update()
     
     def processMsg(self, msg):
-        if msg[0] == MESSAGES.TERMINATE:
-            self.mainQueue.put((MESSAGES.TERMINATE, -1), True)
-        # else:
-        #     outMsg = (MESSAGES.TEST, randint(0, 64))
-        #     self.sendMsg(outMsg)
+        pass
+    
+    # Update game state
+    def update(self):
+        super().update()

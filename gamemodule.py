@@ -1,52 +1,45 @@
-from constantly import ValueConstant, Values
-
-# Message type constants
-class MESSAGES(Values):
-    NONE = ValueConstant("0")
-    TEST = ValueConstant("1")
-    TERMINATE = ValueConstant("-1")
+from constants import MESSAGES
 
 # Base class for server & client modules
 class GameModule():
     name = "unknown"
-    shouldTerminate = False
     running = True
 
     def __init__(self, inQueue, outQueue):
-        self.inQueue = inQueue
-        self.outQueue = outQueue
-    
-    # Stub method for processing messages
-    def processMsg(self, msg):
-        pass
-    
+        self.in_queue = inQueue
+        self.out_queue = outQueue
+
     # Stuf method for cleanup before termination
     def cleanup(self):
         pass
-    
-    def sendMsg(self, msg):
+
+    # Stub method for processing messages
+    def process_msg(self, msg):
+        pass
+
+    # Update game state
+    def update(self):
+        if not self.running:
+            self.cleanup()
+            print("%s quitting" % (self.name))
+
+    # Send a message to counterpart (i.e., the client or server)
+    def send_msg(self, msg):
         print("%s: sending %s - %d" % (self.name, msg[0].name, msg[1]))
-        self.outQueue.put(msg,True)
-    
-    def checkMsgs(self):
-        while not self.inQueue.empty():
+        self.out_queue.put(msg,True)
+
+    # Process all incoming messages
+    def check_msgs(self):
+        while not self.in_queue.empty():
             # Check queue for new messages & respond to each
-            msgType = MESSAGES.NONE
-            msgContent = 0
+            msg_type = MESSAGES.NONE
+            msg_content = 0
 
-            msgType, msgContent = self.inQueue.get_nowait()
-            print("%s: received %s - %d" % (self.name, msgType.name, msgContent))
-            self.inQueue.task_done()
+            msg_type, msg_content = self.in_queue.get_nowait()
+            print("%s: received %s - %d" % (self.name, msg_type.name, msg_content))
+            self.in_queue.task_done()
 
-            self.processMsg((msgType, msgContent))
+            self.process_msg((msg_type, msg_content))
 
-            if msgType == MESSAGES.TERMINATE:
-                self.shouldTerminate = True
-
-            if self.shouldTerminate:
-                self.cleanup()
+            if msg_type == MESSAGES.TERMINATE:
                 self.running = False
-
-    def run(self):
-        while self.running:
-            self.checkMsgs()

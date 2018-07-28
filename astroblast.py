@@ -9,69 +9,36 @@
 #   https://opengameart.org/content/rocks-ships-stars-gold-and-more
 
 from queue import Queue
-from threading import Thread
-from constantly import ValueConstant, Values
-from os import path
 
-import pygame
-
-from gamemodule import MESSAGES
 from client import GameClient
 from server import GameServer
 
-# Constants
-# Will use fixed screen dimensions for now
-WIDTH = 800
-HEIGHT = 600
-FPS = 60
-
-WHITE = (255, 255, 255)
-BLACK = (0, 0, 0)
-RED = (255, 0, 0)
-GREEN = (0, 255, 0)
-BLUE = (0, 0, 255)
-YELLOW = (255, 255, 0)
-
-# Initialize pyGame
-pygame.init()
-screen = pygame.display.set_mode((WIDTH, HEIGHT))
-pygame.display.set_caption("AstroBlast!")
-
-# Paths
-assets_dir = path.join(path.dirname(__file__), 'assets')
-
 def main():
-    # queue of server->main process messages
-    mainQueue = Queue()
     # queue of messages for the server
-    serverQueue = Queue()
+    server_queue = Queue()
     # queue of messages for the client
-    clientQueue = Queue()
+    client_queue = Queue()
 
-    server = GameServer(serverQueue, clientQueue, mainQueue)
-    client = GameClient(clientQueue, serverQueue)
+    server = GameServer(server_queue, client_queue)
+    client = GameClient(client_queue, server_queue)
 
+    # Server runs on a separate thread
     server.start()
-    # client.start()
 
-    # Just infinitely loop for now
     running = True
     while running:
-        # print("before checkMsgs")
-        client.checkMsgs()
+        # Check & process incoming messages to the client
+        client.check_msgs()
+        # Update client-side game state / Process user input
         client.update()
-        # print("after checkMsgs")
-        msgType = MESSAGES.NONE
-        msgContent = 0
-        if not mainQueue.empty():
-            msgType, msgContent = mainQueue.get_nowait()
-        # print("after mq.get")
-        if msgType == MESSAGES.TERMINATE:
-            print("Exiting...")
-            running = False
-        # print("after terminate check")
 
-    pygame.quit()
+        if not client.running:
+            running = False
+            if server.running:
+                server.running = False
+
+    # Clean-up pyGame
+    print("Exiting...")
 
 if __name__ == '__main__':
     main()

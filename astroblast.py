@@ -9,35 +9,36 @@
 #   https://opengameart.org/content/rocks-ships-stars-gold-and-more
 
 from queue import Queue
-from threading import Thread
-from constantly import ValueConstant, Values
 
-from gamemodule import MESSAGES
 from client import GameClient
 from server import GameServer
 
 def main():
-    # queue of server->main process messages
-    mainQueue = Queue()
     # queue of messages for the server
-    serverQueue = Queue()
+    server_queue = Queue()
     # queue of messages for the client
-    clientQueue = Queue()
-    # put a message in the client queue to get execution started
-    clientQueue.put((MESSAGES.TEST, -1),True)
+    client_queue = Queue()
 
-    server = GameServer(serverQueue, clientQueue, mainQueue)
-    client = GameClient(clientQueue, serverQueue)
+    server = GameServer(server_queue, client_queue)
+    client = GameClient(client_queue, server_queue)
 
+    # Server runs on a separate thread
     server.start()
-    client.start()
 
-    # Just infinitely loop for now
-    while True:
-        msgType, msgContent = mainQueue.get()
-        if msgType == MESSAGES.TERMINATE:
-            print("Exiting...")
-            break
+    running = True
+    while running:
+        # Check & process incoming messages to the client
+        client.check_msgs()
+        # Update client-side game state / Process user input
+        client.update()
+
+        if not client.running:
+            running = False
+            if server.running:
+                server.running = False
+
+    # Clean-up pyGame
+    print("Exiting...")
 
 if __name__ == '__main__':
     main()

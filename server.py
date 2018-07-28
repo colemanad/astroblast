@@ -1,11 +1,23 @@
-from gamemodule import GameModule, MESSAGES
+from threading import Thread
 
-class GameServer(GameModule):
-    def __init__(self, inQueue, outQueue, mainQueue):
+from gamemodule import GameModule
+from constants import MESSAGES
+
+class GameServer(GameModule, Thread):
+    def __init__(self, inQueue, outQueue):
+        Thread.__init__(self)
         GameModule.__init__(self, inQueue, outQueue)
         self.name = "Server"
-        self.mainQueue = mainQueue
+
+    # Gets called at thread start
+    def run(self):
+        while self.running:
+            self.check_msgs()
+            self.update()
     
-    def process(self, msg):
-        if msg[0] == MESSAGES.TERMINATE:
-            self.mainQueue.put((MESSAGES.TERMINATE, -1), True)
+    def processMsg(self, msg):
+        pass
+    
+    # Update game state
+    def update(self):
+        super().update()

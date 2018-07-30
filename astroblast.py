@@ -15,15 +15,17 @@ from client import GameClient
 from server import GameServer
 
 def main():
+    """Application entry point"""
     # queue of messages for the server
     server_queue = Queue()
     # queue of messages for the client
     client_queue = Queue()
 
+    # Instantiate the server and client modules
     server = GameServer(server_queue, client_queue)
     client = GameClient(client_queue, server_queue)
 
-    # Server runs on a separate thread
+    # Start the server on a separate thread
     server.start()
 
     running = True
@@ -33,8 +35,10 @@ def main():
         # Update client-side game state / Process user input
         client.update()
 
+        # Shut down if the client quits
         if not client.running:
             running = False
+            # Make sure the server quits too
             if server.running:
                 server.running = False
 

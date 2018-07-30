@@ -1,5 +1,14 @@
 #!/usr/bin/env python3
 
+# AstroBlast!
+# Copyright Andrew Coleman and Zachary Conlyn
+# CMSC 495-7380, Group 4
+#
+# Art assets Copyright 2018 Blindman67
+#   Licensed under the Creative Commons CC-BY 3.0 license: https://creativecommons.org/licenses/by/3.0/
+#   The assets have been modified.
+#   https://opengameart.org/content/rocks-ships-stars-gold-and-more
+
 from os import path
 import pygame
 
@@ -9,8 +18,45 @@ from constants import GAME, MESSAGES
 # Paths
 ASSETSDIR = path.join(path.dirname(__file__), 'assets')
 
+def load_image(name, colorkey=None):
+    """Load an image with the specified filename."""
+    filename = path.join(ASSETSDIR, name)
+    try:
+        image = pygame.image.load(filename).convert_alpha()
+    except pygame.error as message:
+        print('Cannot load image: %s' % name)
+        raise SystemExit from message
+    if colorkey is not None:
+        if colorkey is -1:
+            colorkey = image.get_at((0,0))
+        image.set_colorkey(colorkey, pygame.RLEACCEL)
+    return image, image.get_rect()
+
+class EntitySprite(pygame.sprite.Sprite):
+    """Represents a sprite (2D image) displayed on the screen."""
+    def __init__(self, image_name, initial_pos = (0,0)):
+        pygame.sprite.Sprite.__init__(self)
+        self.image, self.rect = load_image(image_name)
+        self.rect.topleft = initial_pos
+        self.original = self.image
+        self.rotation = 0
+    
+    # TODO: delta time
+    def update(self):
+        """Update sprite position, rotation, etc."""
+        # clamp rotation within [0, 360), but allow it to "wrap around"
+        while self.rotation >= 360 or self.rotation < 0:
+            if self.rotation >= 360:
+                self.rotation -= 360
+            elif self.rotation < 0:
+                self.rotation += 360
+        center = self.rect.center
+        # self.image = pygame.transform.rotate(self.original, self.rotation)
+        self.image = pygame.transform.rotozoom(self.original, self.rotation, 1)
+        self.rect = self.image.get_rect(center=center)
+
 class GameClient(GameModule):
-    """Contains all game client and pyGame functionality."""
+    """Contains game client and pyGame functionality."""
     def __init__(self, inQueue, outQueue):
         GameModule.__init__(self, inQueue, outQueue)
         self.name = 'Client'
@@ -22,48 +68,31 @@ class GameClient(GameModule):
         self.clock = pygame.time.Clock()
 
         # Create a sprite to draw on the screen
-        ship = pygame.sprite.Sprite()
-        image = self.load_image('ship.png')
-        ship.image = image
-        ship.rect = image.get_rect()
-        ship.rect.x = 10
-        ship.rect.y = 10
+        ship = EntitySprite('ship.png', (400,300))
         self.ship_sprite = ship
         self.sprites = pygame.sprite.RenderPlain(self.ship_sprite)
-    
-    def load_image(self, name, colorkey=None):
-        """Load an image with the specified filename."""
-        filename = path.join(ASSETSDIR, name)
-        try:
-            image = pygame.image.load(filename)
-        except pygame.error as message:
-            print('Cannot load image: %s' % name)
-            raise SystemExit from message
-        image = image.convert()
-        if colorkey is not None:
-            if colorkey is -1:
-                colorkey = image.get_at((0,0))
-            image.set_colorkey(colorkey, pygame.RLEACCEL)
-        return image
 
-    # Sends quit message
     def quit(self):
+        """Sends quit message and halts client"""
         self.send_msg((MESSAGES.TERMINATE, -1))
         self.running = False
     
     def processMsg(self, msg):
+        """Process an incoming message"""
         pass
     
-    # Update game state/input state
     def update(self):
+        """Update game state/input state"""
         self.clock.tick(GAME.FPS)
 
         # Handle pyGame events
         events_found = False
         event_str = 'pyGame events: '
         for event in pygame.event.get():
+            # Cache the event name for logging
             events_found = True
             event_str += pygame.event.event_name(event.type) + ', '
+
             # Handle keyboard events
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_ESCAPE:
@@ -71,15 +100,19 @@ class GameClient(GameModule):
             elif event.type == pygame.QUIT:
                 self.quit()
         
-        if events_found:
+        # Print the event name to stdout
+        if events_found and GAME.PRINTEVENTS:
             print(event_str)
         
-        # Draw something to the screen
+        # Clear surface
+        self.screen.fill(GAME.BLACK)
+
+        # Draw sprites on the surface
+        self.ship_sprite.rotation += 10
         self.sprites.update()
         self.sprites.draw(self.screen)
 
-        # Update pyGame
-        pygame.display.update()
+        # Display surface to the screen
         pygame.display.flip()
 
         # Handles quitting/etc.

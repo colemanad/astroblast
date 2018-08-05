@@ -30,7 +30,7 @@ class GameModule():
         """Stub method for cleanup before termination"""
         pass
 
-    def process_msg(self, msg_type, msg_content):
+    def process_msg(self, msg_type, sender_id, msg_content):
         """Stub method for processing messages"""
         pass
 
@@ -85,7 +85,9 @@ class GameModule():
             # print("%s: received %s" % (self.name, msg_type.name))
             self.in_queue.task_done()
 
-            self.process_msg(msg_type, msg_content)
+            id_content = msg_content.pop(0)
+            if self.assert_msg_content_type(msg_type, id_content[0], MSGCONTENT.ID):
+                self.process_msg(msg_type, id_content[1], msg_content)
 
             if msg_type == MESSAGES.TERMINATE:
                 self.running = False

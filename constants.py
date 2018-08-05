@@ -42,8 +42,10 @@ class MESSAGES(Values):
     PONG = ValueConstant("101")
 
     # Messages used Client->Server and Server->Client
-    UPDATEPOS = ValueConstant("200")    # Update client-side entity position
-    UPDATEROT = ValueConstant("201")    # Update client-side entity rotation
+    SIGNAL_DISCONNECT = ValueConstant("200")    # Tell server client is disconnecting now/tell client to disconnect
+
+    UPDATEPOS = ValueConstant("250")    # Update client-side entity position
+    UPDATEROT = ValueConstant("251")    # Update client-side entity rotation
 
     # Client->Server messages
     REQCONNECT = ValueConstant("300")   # Request connection to server

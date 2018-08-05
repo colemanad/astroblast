@@ -77,20 +77,30 @@ class GameClient(GameModule):
         self.send_msg(MESSAGES.TERMINATE)
         self.running = False
     
-    def process_msg(self, msg_type, msg_content):
+    def process_msg(self, msg_type, sender_id, msg_content):
         """Process an incoming message"""
         if msg_type == MESSAGES.CONNECT_ACCEPT:
-            if self.assert_msg_content_size(msg_type, msg_content, 2):
-                new_id_content = msg_content[1]
+            if self.assert_msg_content_size(msg_type, msg_content, 1):
+                new_id_content = msg_content[0]
                 if self.assert_msg_content_type(msg_type, new_id_content[0], MSGCONTENT.SET_ID):
                     self.id = new_id_content[1]
                     self.log("Connection to server successful, received client ID %d" % self.id)
         
         elif msg_type == MESSAGES.CONNECT_REJECT:
             self.log("Connection to server unsuccessful; connection rejected")
+        
+        elif msg_type == MESSAGES.SIGNAL_DISCONNECT:
+            self.disconnect(False)
 
         elif msg_type == MESSAGES.UPDATEROT:
-            self.ship_sprite.rotation = msg_content[1][1]
+            self.ship_sprite.rotation = msg_content[0][1]
+
+    def disconnect(self, should_send_signal=True):
+        if should_send_signal:
+            self.send_msg(MESSAGES.SIGNAL_DISCONNECT)
+
+        self.log("Disconnected from server")
+        self.id = int(GAME.INVALID_ID.value)
 
     def update(self):
         """Update game state/input state"""
@@ -110,6 +120,8 @@ class GameClient(GameModule):
                     self.quit()
                 elif event.key == pygame.K_SPACE:
                     self.send_msg(MESSAGES.REQCONNECT)
+                elif event.key == pygame.K_BACKSPACE:
+                    self.disconnect()
             elif event.type == pygame.QUIT:
                 self.quit()
         

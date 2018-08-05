@@ -9,7 +9,7 @@
 #   The assets have been modified.
 #   https://opengameart.org/content/rocks-ships-stars-gold-and-more
 
-from constants import MESSAGES
+from constants import GAME, MESSAGES, MSGCONTENT
 
 # Base class for server & client modules
 class GameModule():
@@ -24,11 +24,13 @@ class GameModule():
         # Queue of outgoing messages
         self.out_queue = outQueue
 
+        self.id = int(GAME.INVALID_ID.value)
+
     def cleanup(self):
         """Stub method for cleanup before termination"""
         pass
 
-    def process_msg(self, msg):
+    def process_msg(self, msg_type, msg_content):
         """Stub method for processing messages"""
         pass
 
@@ -39,15 +41,15 @@ class GameModule():
         # self.send_msg((MESSAGES.PING, (MESSAGES.NONE, 0)))
         if not self.running:
             self.cleanup()
-            print("%s quitting" % (self.name))
+            self.log("quitting")
 
-    def send_msg(self, msg):
+    def send_msg(self, msg_type, *content):
         """Send a message to counterpart (i.e., the client or server)"""
         # TODO: Update message format to include recipient ID
         # Message format:
         #   msg = (type, content)
         #   type is a constant from MESSAGES
-        #   content is a tuple of pairs of integers
+        #   content is a list of pairs of integers
         #
         # example: updating entity position client-side
         #   msg = (UPDATEPOS, ((ID, 12345), (X, 14), (Y, 15)))
@@ -56,7 +58,24 @@ class GameModule():
         # (ID, X, and Y are all symbolic constants in constants.py)
 
         # print("%s: sending %s" % (self.name, msg[0].name))
+        msg_content = list(content)
+        msg_content.insert(0, (MSGCONTENT.ID, self.id))
+        msg = (msg_type, msg_content)
         self.out_queue.put(msg, True)
+    
+    def assert_msg_content_size(self, msg_type, msg_content, expected_size):
+        size = len(msg_content)
+        if size == expected_size:
+            return True
+        else:
+            self.log("content size in %s message is %d, expected %d" % (msg_type.name, size, expected_size))
+    
+    def assert_msg_content_type(self, msg_type, content_type, expected_type):
+        if content_type == expected_type:
+            return True
+        else:
+            self.log("received %s in %s message, expected %s" % (content_type.name, msg_type.name, expected_type.name))
+            return False
 
     def check_msgs(self):
         """Process all incoming messages"""
@@ -66,10 +85,13 @@ class GameModule():
             # print("%s: received %s" % (self.name, msg_type.name))
             self.in_queue.task_done()
 
-            self.process_msg((msg_type, msg_content))
+            self.process_msg(msg_type, msg_content)
 
             if msg_type == MESSAGES.TERMINATE:
                 self.running = False
 
             elif msg_type == MESSAGES.PING:
-                self.send_msg((MESSAGES.PONG, (MESSAGES.NONE, 0)))
+                self.send_msg(MESSAGES.PONG)
+
+    def log(self, msg):
+        print("%s(%d): %s" % (self.name, self.id, msg))

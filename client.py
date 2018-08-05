@@ -68,22 +68,29 @@ class GameClient(GameModule):
         self.clock = pygame.time.Clock()
 
         # Create a sprite to draw on the screen
-        ship = EntitySprite('ship.png', (400,300))
+        ship = EntitySprite('ship.png', (400, 300))
         self.ship_sprite = ship
         self.sprites = pygame.sprite.RenderPlain(self.ship_sprite)
 
     def quit(self):
         """Sends quit message and halts client"""
-        self.send_msg((MESSAGES.TERMINATE, -1))
+        self.send_msg(MESSAGES.TERMINATE)
         self.running = False
     
-    def process_msg(self, msg):
+    def process_msg(self, msg_type, msg_content):
         """Process an incoming message"""
-        msg_type = msg[0]
-        msg_content = msg[1]
+        if msg_type == MESSAGES.CONNECT_ACCEPT:
+            if self.assert_msg_content_size(msg_type, msg_content, 2):
+                new_id_content = msg_content[1]
+                if self.assert_msg_content_type(msg_type, new_id_content[0], MSGCONTENT.SET_ID):
+                    self.id = new_id_content[1]
+                    self.log("Connection to server successful, received client ID %d" % self.id)
+        
+        elif msg_type == MESSAGES.CONNECT_REJECT:
+            self.log("Connection to server unsuccessful; connection rejected")
 
-        if msg_type == MESSAGES.UPDATEROT:
-            self.ship_sprite.rotation = msg_content[0][1]
+        elif msg_type == MESSAGES.UPDATEROT:
+            self.ship_sprite.rotation = msg_content[1][1]
 
     def update(self):
         """Update game state/input state"""
@@ -101,6 +108,8 @@ class GameClient(GameModule):
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_ESCAPE:
                     self.quit()
+                elif event.key == pygame.K_SPACE:
+                    self.send_msg(MESSAGES.REQCONNECT)
             elif event.type == pygame.QUIT:
                 self.quit()
         

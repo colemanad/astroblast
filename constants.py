@@ -29,6 +29,9 @@ class GAME(Values):
     # Print pygame events to stdout?
     PRINTEVENTS = False
 
+    INVALID_ID = ValueConstant("-1")
+    SERVER_ID = ValueConstant("0")
+
 class MESSAGES(Values):
     """Message type constants"""
     NONE = ValueConstant("0")
@@ -38,7 +41,7 @@ class MESSAGES(Values):
     PING = ValueConstant("100")
     PONG = ValueConstant("101")
 
-    # Server->Client messages
+    # Messages used Client->Server and Server->Client
     UPDATEPOS = ValueConstant("200")    # Update client-side entity position
     UPDATEROT = ValueConstant("201")    # Update client-side entity rotation
 
@@ -46,11 +49,19 @@ class MESSAGES(Values):
     REQCONNECT = ValueConstant("300")   # Request connection to server
     REQUPDATE = ValueConstant("301")    # Request updated game state
 
+    # Server->Client messages
+    CONNECT_ACCEPT = ValueConstant("400")
+    CONNECT_REJECT = ValueConstant("401")
+
 class MSGCONTENT(Values):
     """Message content constants"""
     NONE = ValueConstant("0")
     TEST = ValueConstant("1")
 
+    ID = ValueConstant("10")
+    SET_ID = ValueConstant("11")
+
+    # Game state
     X_POS = ValueConstant("100")
     Y_POS = ValueConstant("101")
     ROTATION = ValueConstant("102")

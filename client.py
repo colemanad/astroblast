@@ -13,7 +13,7 @@ from os import path
 import pygame
 
 from gamemodule import GameModule
-from constants import GAME, MESSAGES
+from constants import GAME, MESSAGES, MSGCONTENT
 
 # Paths
 ASSETSDIR = path.join(path.dirname(__file__), 'assets')
@@ -34,7 +34,7 @@ def load_image(name, colorkey=None):
 
 class EntitySprite(pygame.sprite.Sprite):
     """Represents a sprite (2D image) displayed on the screen."""
-    def __init__(self, image_name, initial_pos = (0,0)):
+    def __init__(self, image_name, initial_pos=(0, 0)):
         pygame.sprite.Sprite.__init__(self)
         self.image, self.rect = load_image(image_name)
         self.rect.topleft = initial_pos
@@ -45,11 +45,11 @@ class EntitySprite(pygame.sprite.Sprite):
     def update(self):
         """Update sprite position, rotation, etc."""
         # clamp rotation within [0, 360), but allow it to "wrap around"
-        while self.rotation >= 360 or self.rotation < 0:
-            if self.rotation >= 360:
-                self.rotation -= 360
-            elif self.rotation < 0:
-                self.rotation += 360
+        # while self.rotation >= 360 or self.rotation < 0:
+            # if self.rotation >= 360:
+                # self.rotation -= 360
+            # elif self.rotation < 0:
+                # self.rotation += 360
         center = self.rect.center
         # self.image = pygame.transform.rotate(self.original, self.rotation)
         self.image = pygame.transform.rotozoom(self.original, self.rotation, 1)
@@ -77,10 +77,14 @@ class GameClient(GameModule):
         self.send_msg((MESSAGES.TERMINATE, -1))
         self.running = False
     
-    def processMsg(self, msg):
+    def process_msg(self, msg):
         """Process an incoming message"""
-        pass
-    
+        msg_type = msg[0]
+        msg_content = msg[1]
+
+        if msg_type == MESSAGES.UPDATEROT:
+            self.ship_sprite.rotation = msg_content[0][1]
+
     def update(self):
         """Update game state/input state"""
         self.clock.tick(GAME.FPS)
@@ -108,7 +112,7 @@ class GameClient(GameModule):
         self.screen.fill(GAME.BLACK)
 
         # Draw sprites on the surface
-        self.ship_sprite.rotation += 10
+        # self.ship_sprite.rotation += 10
         self.sprites.update()
         self.sprites.draw(self.screen)
 

@@ -34,3 +34,23 @@ class MESSAGES(Values):
     NONE = ValueConstant("0")
     TEST = ValueConstant("1")
     TERMINATE = ValueConstant("-1")
+
+    PING = ValueConstant("100")
+    PONG = ValueConstant("101")
+
+    # Server->Client messages
+    UPDATEPOS = ValueConstant("200")    # Update client-side entity position
+    UPDATEROT = ValueConstant("201")    # Update client-side entity rotation
+
+    # Client->Server messages
+    REQCONNECT = ValueConstant("300")   # Request connection to server
+    REQUPDATE = ValueConstant("301")    # Request updated game state
+
+class MSGCONTENT(Values):
+    """Message content constants"""
+    NONE = ValueConstant("0")
+    TEST = ValueConstant("1")
+
+    X_POS = ValueConstant("100")
+    Y_POS = ValueConstant("101")
+    ROTATION = ValueConstant("102")

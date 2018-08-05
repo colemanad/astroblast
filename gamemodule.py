@@ -36,24 +36,40 @@ class GameModule():
         """Method for updating module state.
         Overrides of this method should call this version before returning.
         """
+        # self.send_msg((MESSAGES.PING, (MESSAGES.NONE, 0)))
         if not self.running:
             self.cleanup()
             print("%s quitting" % (self.name))
 
     def send_msg(self, msg):
         """Send a message to counterpart (i.e., the client or server)"""
-        print("%s: sending %s - %d" % (self.name, msg[0].name, msg[1]))
-        self.out_queue.put(msg,True)
+        # TODO: Update message format to include recipient ID
+        # Message format:
+        #   msg = (type, content)
+        #   type is a constant from MESSAGES
+        #   content is a tuple of pairs of integers
+        #
+        # example: updating entity position client-side
+        #   msg = (UPDATEPOS, ((ID, 12345), (X, 14), (Y, 15)))
+        #   type = update position
+        #   content = ID 12345, X = 14, Y = 15
+        # (ID, X, and Y are all symbolic constants in constants.py)
+
+        # print("%s: sending %s" % (self.name, msg[0].name))
+        self.out_queue.put(msg, True)
 
     def check_msgs(self):
         """Process all incoming messages"""
         # Check queue for new messages & respond to each
         while not self.in_queue.empty():
             msg_type, msg_content = self.in_queue.get_nowait()
-            print("%s: received %s - %d" % (self.name, msg_type.name, msg_content))
+            # print("%s: received %s" % (self.name, msg_type.name))
             self.in_queue.task_done()
 
             self.process_msg((msg_type, msg_content))
 
             if msg_type == MESSAGES.TERMINATE:
                 self.running = False
+
+            elif msg_type == MESSAGES.PING:
+                self.send_msg((MESSAGES.PONG, (MESSAGES.NONE, 0)))

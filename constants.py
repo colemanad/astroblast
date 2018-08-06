@@ -29,6 +29,7 @@ class GAME(Values):
     # Print pygame events to stdout?
     PRINTEVENTS = False
 
+    # Default ID values
     INVALID_ID = ValueConstant("-1")
     SERVER_ID = ValueConstant("0")
 

@@ -50,24 +50,26 @@ class GameServer(GameModule, Thread):
                 # TODO: create game state object and associate it with new ID?
                 self.send_msg(MESSAGES.CONNECT_ACCEPT, (MSGCONTENT.SET_ID, self.next_id))
                 self.next_id += 1
-            
+
             else:
                 # Client already exists, reject connection attempt
                 self.log("Client with ID %d already exists, rejecting connection request" % sender_id)
                 # TODO: recipient ID/address?
                 self.send_msg(MESSAGES.CONNECT_REJECT)
-        
+
         elif msg_type == MESSAGES.SIGNAL_DISCONNECT:
             self.log("Received disconnect signal from client %d" % sender_id)
             self.clients.discard(sender_id)
 
-    
     def update(self):
         """Update internal game state"""
+        # Timing logic; ensure that update is no frequent than value specified by GAME.FPS
+        #   (ticks are in ms)
         current_ticks = pygame.time.get_ticks()
         diff = current_ticks - self.last_ticks
         self.ticks_since_last_update += diff
-        # print(self.ticks_since_last_update)
+
+        # Run update logic if enough time has elapsed
         if self.ticks_since_last_update >= self.ms_per_frame:
             self.ticks_since_last_update -= self.ms_per_frame
             for client in self.clients:
@@ -77,12 +79,16 @@ class GameServer(GameModule, Thread):
                         self.rot -= 360
                     elif self.rot < 0:
                         self.rot += 360
+                # Tell clients to rotate ship sprite
                 self.send_msg(MESSAGES.UPDATEROT, (MSGCONTENT.ROTATION, self.rot))
 
+            # Reset ticks counter
             self.last_ticks = current_ticks
         
         else:
             # sleep the thread until it's time for the next update
+            # not doing this can cause the main thread to become too busy with processing messages,
+            #   preventing pygame from updating/drawing to the screen
             time.sleep(diff/1000.0)
 
         super().update()

@@ -51,19 +51,20 @@ class GameModule():
         #   type is a constant from MESSAGES
         #   content is a list of pairs of integers
         #
+        # TODO: Entity IDs
         # example: updating entity position client-side
-        #   msg = (UPDATEPOS, ((ID, 12345), (X, 14), (Y, 15)))
+        #   msg = (UPDATEPOS, [(ID, 12345), (X_POS, 14), (Y_POS, 15)])
         #   type = update position
         #   content = ID 12345, X = 14, Y = 15
-        # (ID, X, and Y are all symbolic constants in constants.py)
+        # (ID, X_POS, and Y_POS are all symbolic constants in constants.py)
 
-        # print("%s: sending %s" % (self.name, msg[0].name))
         msg_content = list(content)
         msg_content.insert(0, (MSGCONTENT.ID, self.id))
         msg = (msg_type, msg_content)
         self.out_queue.put(msg, True)
     
     def assert_msg_content_size(self, msg_type, msg_content, expected_size):
+        """Assert that msg_content contains the specified number of integer-integer pairs."""
         size = len(msg_content)
         if size == expected_size:
             return True
@@ -71,6 +72,7 @@ class GameModule():
             self.log("content size in %s message is %d, expected %d" % (msg_type.name, size, expected_size))
     
     def assert_msg_content_type(self, msg_type, content_type, expected_type):
+        """Assert that the message content is of the specified type"""
         if content_type == expected_type:
             return True
         else:
@@ -96,4 +98,5 @@ class GameModule():
                 self.send_msg(MESSAGES.PONG)
 
     def log(self, msg):
+        """Print a log message to stdout, along with the module's ID"""
         print("%s(%d): %s" % (self.name, self.id, msg))

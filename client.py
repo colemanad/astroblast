@@ -40,7 +40,7 @@ class EntitySprite(pygame.sprite.Sprite):
         self.rect.topleft = initial_pos
         self.original = self.image
         self.rotation = 0
-    
+
     # TODO: delta time
     def update(self):
         """Update sprite position, rotation, etc."""
@@ -70,7 +70,7 @@ class GameClient(GameModule):
         # Create a sprite to draw on the screen
         ship = EntitySprite('ship.png', (400, 300))
         self.ship_sprite = ship
-        self.sprites = pygame.sprite.RenderPlain(self.ship_sprite)
+        self.sprites = pygame.sprite.Group(self.ship_sprite)
 
     def quit(self):
         """Sends quit message and halts client"""
@@ -96,6 +96,8 @@ class GameClient(GameModule):
             self.ship_sprite.rotation = msg_content[0][1]
 
     def disconnect(self, should_send_signal=True):
+        """Disconnect this client from a server"""
+        # TODO: Check if connected before proceeding
         if should_send_signal:
             self.send_msg(MESSAGES.SIGNAL_DISCONNECT)
 

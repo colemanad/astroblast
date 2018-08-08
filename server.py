@@ -33,8 +33,8 @@ class GameServer(GameModule, Thread):
         self.clients = set()
 
         self.module_id = int(GAME.SERVER_ID.value)
-        self.next_id = 1
-        self.next_entity_id = 0
+        self.next_id = self.module_id + 1
+        self.ids = [ self.module_id ]
 
         self.entities = {}
 
@@ -45,17 +45,37 @@ class GameServer(GameModule, Thread):
             self.check_msgs()
             self.update()
     
+    def get_id(self):
+        for an_id in range(self.next_id):
+            if an_id not in self.ids:
+                # Found an unused id less than next_id
+                self.log('Reusing id %d' % an_id)
+                return an_id
+        # didn't find any unused ids below next_id
+        an_id = self.next_id
+        self.ids.append(an_id)
+        self.next_id += 1
+        self.log('Generated id %d' % an_id)
+        return an_id
+
+    def release_id(self, an_id):
+        if an_id in self.ids:
+            self.ids.remove(an_id)
+            self.log('Released id %d' % an_id)
+        else:
+            self.log('Tried to release id %d, but it was not taken' % an_id)
+    
     def process_msg(self, msg_type, sender_id, msg_content):
         """Process an incoming message"""
         # self.log('received %s' % msg_type.name)
         if msg_type == MESSAGES.REQCONNECT:
             if sender_id == int(GAME.INVALID_ID.value):
                 # This is a new client, assign a new ID
-                self.log("Registering new client with ID %d" % self.next_id)
-                self.clients.add(self.next_id)
+                an_id = self.get_id()
+                self.log("Registering new client with ID %d" % an_id)
+                self.clients.add(an_id)
                 # TODO: create game state object and associate it with new ID?
-                self.send_msg(MESSAGES.CONNECT_ACCEPT, (MSGCONTENT.SET_ID, self.next_id))
-                self.next_id += 1
+                self.send_msg(MESSAGES.CONNECT_ACCEPT, (MSGCONTENT.SET_ID, an_id))
 
             else:
                 # Client already exists, reject connection attempt
@@ -71,6 +91,7 @@ class GameServer(GameModule, Thread):
         elif msg_type == MESSAGES.SIGNAL_DISCONNECT:
             self.log("Received disconnect signal from client %d" % sender_id)
             self.clients.discard(sender_id)
+            self.release_id(sender_id)
 
     def update(self):
         """Update internal game state"""
@@ -116,8 +137,7 @@ class GameServer(GameModule, Thread):
 
     def create_entity(self, entity_type, pos=(0, 0), rot=0, bounds=pygame.Rect(-0.5, -0.5, 1, 1)):
         if entity_type == GAME.ENTITY_TEST:
-            e = Entity(pos, rot, bounds, self.next_entity_id, entity_type)
-            self.next_entity_id += 1
+            e = Entity(pos, rot, bounds, self.get_id(), entity_type)
 
         e.visible = True
         e.active = True
@@ -129,4 +149,4 @@ class GameServer(GameModule, Thread):
         e = self.entities.pop(entity_id, None)
         if e is not None:
             self.send_msg_all_clients(MESSAGES.DESTROY_ENTITY, (MSGCONTENT.ENTITY_ID, e.entity_id))
-
+            self.release_id(e.entity_id)

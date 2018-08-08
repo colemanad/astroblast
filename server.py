@@ -17,6 +17,7 @@ import pygame
 
 from gamemodule import GameModule
 from constants import MESSAGES, MSGCONTENT, GAME
+from entity import Entity
 
 class GameServer(GameModule, Thread):
     """Implements the server module which manages the internal game state."""
@@ -31,17 +32,22 @@ class GameServer(GameModule, Thread):
 
         self.clients = set()
 
-        self.id = int(GAME.SERVER_ID.value)
+        self.module_id = int(GAME.SERVER_ID.value)
         self.next_id = 1
+        self.next_entity_id = 0
+
+        self.entities = {}
 
     def run(self):
         """Gets called at thread start"""
+        self.create_entity(GAME.ENTITY_TEST, (400, 300))
         while self.running:
             self.check_msgs()
             self.update()
     
     def process_msg(self, msg_type, sender_id, msg_content):
         """Process an incoming message"""
+        # self.log('received %s' % msg_type.name)
         if msg_type == MESSAGES.REQCONNECT:
             if sender_id == int(GAME.INVALID_ID.value):
                 # This is a new client, assign a new ID
@@ -51,11 +57,17 @@ class GameServer(GameModule, Thread):
                 self.send_msg(MESSAGES.CONNECT_ACCEPT, (MSGCONTENT.SET_ID, self.next_id))
                 self.next_id += 1
 
+
             else:
                 # Client already exists, reject connection attempt
                 self.log("Client with ID %d already exists, rejecting connection request" % sender_id)
                 # TODO: recipient ID/address?
                 self.send_msg(MESSAGES.CONNECT_REJECT)
+        
+        elif msg_type == MESSAGES.CONNECT_SUCCESS:
+            # Tell new client about all existing entities
+            for e in self.entities.values():
+                self.send_msg(MESSAGES.CREATE_ENTITY, (MSGCONTENT.ENTITY_ID, e.entity_id), (MSGCONTENT.ENTITY_TYPE, e.entity_type), (MSGCONTENT.X_POS, e.position[0]), (MSGCONTENT.Y_POS, e.position[1]), (MSGCONTENT.ROTATION, e.rotation))
 
         elif msg_type == MESSAGES.SIGNAL_DISCONNECT:
             self.log("Received disconnect signal from client %d" % sender_id)
@@ -72,15 +84,21 @@ class GameServer(GameModule, Thread):
         # Run update logic if enough time has elapsed
         if self.ticks_since_last_update >= self.ms_per_frame:
             self.ticks_since_last_update -= self.ms_per_frame
-            for client in self.clients:
-                self.rot += 1
-                while self.rot >= 360 or self.rot < 0:
-                    if self.rot >= 360:
-                        self.rot -= 360
-                    elif self.rot < 0:
-                        self.rot += 360
-                # Tell clients to rotate ship sprite
-                self.send_msg(MESSAGES.UPDATEROT, (MSGCONTENT.ROTATION, self.rot))
+
+            # Update entities
+            for e in self.entities.values():
+                e.rotation += 1
+                while e.rotation >= 360 or e.rotation < 0:
+                    if e.rotation >= 360:
+                        e.rotation -= 360
+                    elif e.rotation < 0:
+                        e.rotation += 360
+            
+            # Update clients
+            # Send entity state to clients
+            for e in self.entities.values():
+                self.send_msg_all_clients(MESSAGES.UPDATEPOS, (MSGCONTENT.ENTITY_ID, e.entity_id), (MSGCONTENT.X_POS, e.position[0]), (MSGCONTENT.Y_POS, e.position[1]))
+                self.send_msg_all_clients(MESSAGES.UPDATEROT, (MSGCONTENT.ENTITY_ID, e.entity_id), (MSGCONTENT.ROTATION, e.rotation))
 
             # Reset ticks counter
             self.last_ticks = current_ticks
@@ -92,3 +110,25 @@ class GameServer(GameModule, Thread):
             time.sleep(diff/1000.0)
 
         super().update()
+
+    def send_msg_all_clients(self, msg_type, *msg_content):
+        for client in self.clients:
+            self.send_msg(msg_type, *msg_content)
+
+
+    def create_entity(self, entity_type, pos=(0, 0), rot=0, bounds=pygame.Rect(-0.5, -0.5, 1, 1)):
+        if entity_type == GAME.ENTITY_TEST:
+            e = Entity(pos, rot, bounds, self.next_entity_id, entity_type)
+            self.next_entity_id += 1
+
+        e.visible = True
+        e.active = True
+        self.entities[e.entity_id] = e
+        self.send_msg_all_clients(MESSAGES.CREATE_ENTITY, (MSGCONTENT.ENTITY_ID, e.entity_id), (MSGCONTENT.ENTITY_TYPE, e.entity_type), (MSGCONTENT.X_POS, e.position[0]), (MSGCONTENT.Y_POS, e.position[1]), (MSGCONTENT.ROTATION, e.rotation))
+        self.log('Created entity %d of type %s' % (e.entity_id, e.entity_type.name))
+    
+    def destroy_entity(self, entity_id):
+        e = self.entities.pop(entity_id, None)
+        if e is not None:
+            self.send_msg_all_clients(MESSAGES.DESTROY_ENTITY, (MSGCONTENT.ENTITY_ID, e.entity_id))
+

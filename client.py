@@ -9,51 +9,11 @@
 #   The assets have been modified.
 #   https://opengameart.org/content/rocks-ships-stars-gold-and-more
 
-from os import path
 import pygame
 
 from gamemodule import GameModule
 from constants import GAME, MESSAGES, MSGCONTENT
-
-# Paths
-ASSETSDIR = path.join(path.dirname(__file__), 'assets')
-
-def load_image(name, colorkey=None):
-    """Load an image with the specified filename."""
-    filename = path.join(ASSETSDIR, name)
-    try:
-        image = pygame.image.load(filename).convert_alpha()
-    except pygame.error as message:
-        print('Cannot load image: %s' % name)
-        raise SystemExit from message
-    if colorkey is not None:
-        if colorkey is -1:
-            colorkey = image.get_at((0,0))
-        image.set_colorkey(colorkey, pygame.RLEACCEL)
-    return image, image.get_rect()
-
-class EntitySprite(pygame.sprite.Sprite):
-    """Represents a sprite (2D image) displayed on the screen."""
-    def __init__(self, image_name, initial_pos=(0, 0)):
-        pygame.sprite.Sprite.__init__(self)
-        self.image, self.rect = load_image(image_name)
-        self.rect.topleft = initial_pos
-        self.original = self.image
-        self.rotation = 0
-
-    # TODO: delta time
-    def update(self):
-        """Update sprite position, rotation, etc."""
-        # clamp rotation within [0, 360), but allow it to "wrap around"
-        # while self.rotation >= 360 or self.rotation < 0:
-            # if self.rotation >= 360:
-                # self.rotation -= 360
-            # elif self.rotation < 0:
-                # self.rotation += 360
-        center = self.rect.center
-        # self.image = pygame.transform.rotate(self.original, self.rotation)
-        self.image = pygame.transform.rotozoom(self.original, self.rotation, 1)
-        self.rect = self.image.get_rect(center=center)
+from entitysprite import EntitySprite
 
 class GameClient(GameModule):
     """Contains game client and pyGame functionality."""
@@ -68,9 +28,11 @@ class GameClient(GameModule):
         self.clock = pygame.time.Clock()
 
         # Create a sprite to draw on the screen
-        ship = EntitySprite('ship.png', (400, 300))
-        self.ship_sprite = ship
-        self.sprites = pygame.sprite.Group(self.ship_sprite)
+        self.entities = {}
+        self.sprites = pygame.sprite.Group()
+        # ship = EntitySprite('ship.png', (400, 300))
+        # self.ship_sprite = ship
+        # self.sprites = pygame.sprite.Group(self.ship_sprite)
 
     def quit(self):
         """Sends quit message and halts client"""
@@ -79,21 +41,52 @@ class GameClient(GameModule):
     
     def process_msg(self, msg_type, sender_id, msg_content):
         """Process an incoming message"""
+        # self.log('received %s' % msg_type.name)
         if msg_type == MESSAGES.CONNECT_ACCEPT:
             if self.assert_msg_content_size(msg_type, msg_content, 1):
                 new_id_content = msg_content[0]
                 if self.assert_msg_content_type(msg_type, new_id_content[0], MSGCONTENT.SET_ID):
-                    self.id = new_id_content[1]
-                    self.log("Connection to server successful, received client ID %d" % self.id)
+                    self.module_id = new_id_content[1]
+                    self.log("Connection to server successful, received client ID %d" % self.module_id)
+                    self.send_msg(MESSAGES.CONNECT_SUCCESS)
         
         elif msg_type == MESSAGES.CONNECT_REJECT:
             self.log("Connection to server unsuccessful; connection rejected")
         
         elif msg_type == MESSAGES.SIGNAL_DISCONNECT:
             self.disconnect(False)
+        
+        elif msg_type == MESSAGES.CREATE_ENTITY:
+            entity_id_content = msg_content[0]
+            entity_type_content = msg_content[1]
+            x_pos_content = msg_content[2]
+            y_pos_content = msg_content[3]
+            rotation_content = msg_content[4]
+
+            if entity_type_content[1] == GAME.ENTITY_TEST:
+                e = EntitySprite('ship.png', (x_pos_content[1], y_pos_content[1]), rotation_content[1], entity_id_content[1], entity_type_content[1])
+                self.entities[e.entity_id] = e
+                self.sprites.add(e)
+                self.log('Added sprite for entity %d of type %s' % (e.entity_id, e.entity_type.name))
+
+        elif msg_type == MESSAGES.DESTROY_ENTITY:
+            entity_id_content = msg_content[0]
+            e = self.entities.pop(entity_id_content[1], None)
+            if e is not None:
+                self.sprites.remove(e)
+            else:
+                self.log('Received message to destroy sprite for entity %d, but sprite did not exist' % (entity_id_content[1]))
 
         elif msg_type == MESSAGES.UPDATEROT:
-            self.ship_sprite.rotation = msg_content[0][1]
+            entity_id_content = msg_content[0]
+            rotation_content = msg_content[1]
+            e = self.entities.get(entity_id_content[1])
+            if e is not None:
+                e.rotation = rotation_content[1]
+            else:
+                self.log('Received message to update rotation for entity %d, but sprite does not exist' % (entity_id_content[1]))
+
+            # self.ship_sprite.rotation = msg_content[0][1]
 
     def disconnect(self, should_send_signal=True):
         """Disconnect this client from a server"""
@@ -102,7 +95,11 @@ class GameClient(GameModule):
             self.send_msg(MESSAGES.SIGNAL_DISCONNECT)
 
         self.log("Disconnected from server")
-        self.id = int(GAME.INVALID_ID.value)
+        self.module_id = int(GAME.INVALID_ID.value)
+
+        # Delete sprites
+        self.sprites.empty()
+        self.entities.clear()
 
     def update(self):
         """Update game state/input state"""

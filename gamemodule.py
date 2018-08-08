@@ -24,7 +24,7 @@ class GameModule():
         # Queue of outgoing messages
         self.out_queue = outQueue
 
-        self.id = int(GAME.INVALID_ID.value)
+        self.module_id = int(GAME.INVALID_ID.value)
 
     def cleanup(self):
         """Stub method for cleanup before termination"""
@@ -59,9 +59,10 @@ class GameModule():
         # (ID, X_POS, and Y_POS are all symbolic constants in constants.py)
 
         msg_content = list(content)
-        msg_content.insert(0, (MSGCONTENT.ID, self.id))
+        msg_content.insert(0, (MSGCONTENT.ID, self.module_id))
         msg = (msg_type, msg_content)
         self.out_queue.put(msg, True)
+        # self.log('sending %s' % msg_type.name)
     
     def assert_msg_content_size(self, msg_type, msg_content, expected_size):
         """Assert that msg_content contains the specified number of integer-integer pairs."""
@@ -99,4 +100,4 @@ class GameModule():
 
     def log(self, msg):
         """Print a log message to stdout, along with the module's ID"""
-        print("%s(%d): %s" % (self.name, self.id, msg))
+        print("%s(%d): %s" % (self.name, self.module_id, msg))

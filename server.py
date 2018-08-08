@@ -57,7 +57,6 @@ class GameServer(GameModule, Thread):
                 self.send_msg(MESSAGES.CONNECT_ACCEPT, (MSGCONTENT.SET_ID, self.next_id))
                 self.next_id += 1
 
-
             else:
                 # Client already exists, reject connection attempt
                 self.log("Client with ID %d already exists, rejecting connection request" % sender_id)
@@ -114,7 +113,6 @@ class GameServer(GameModule, Thread):
     def send_msg_all_clients(self, msg_type, *msg_content):
         for client in self.clients:
             self.send_msg(msg_type, *msg_content)
-
 
     def create_entity(self, entity_type, pos=(0, 0), rot=0, bounds=pygame.Rect(-0.5, -0.5, 1, 1)):
         if entity_type == GAME.ENTITY_TEST:

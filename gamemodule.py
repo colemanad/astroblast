@@ -58,28 +58,18 @@ class GameModule():
         #   content = ID 12345, X = 14, Y = 15
         # (ID, X_POS, and Y_POS are all symbolic constants in constants.py)
 
-        msg_content = list(content)
-        msg_content.insert(0, (MSGCONTENT.ID, self.module_id))
+        content_list = list(content)
+        content_list.insert(0, (MSGCONTENT.ID, self.module_id))
+
+        # Convert *args to a dictionary
+        msg_content = {}
+        for pair in content_list:
+            msg_content[pair[0]] = pair[1]
+
         msg = (msg_type, msg_content)
         self.out_queue.put(msg, True)
         # self.log('sending %s' % msg_type.name)
     
-    def assert_msg_content_size(self, msg_type, msg_content, expected_size):
-        """Assert that msg_content contains the specified number of integer-integer pairs."""
-        size = len(msg_content)
-        if size == expected_size:
-            return True
-        else:
-            self.log("content size in %s message is %d, expected %d" % (msg_type.name, size, expected_size))
-    
-    def assert_msg_content_type(self, msg_type, content_type, expected_type):
-        """Assert that the message content is of the specified type"""
-        if content_type == expected_type:
-            return True
-        else:
-            self.log("received %s in %s message, expected %s" % (content_type.name, msg_type.name, expected_type.name))
-            return False
-
     def check_msgs(self):
         """Process all incoming messages"""
         # Check queue for new messages & respond to each
@@ -88,9 +78,9 @@ class GameModule():
             # print("%s: received %s" % (self.name, msg_type.name))
             self.in_queue.task_done()
 
-            id_content = msg_content.pop(0)
-            if self.assert_msg_content_type(msg_type, id_content[0], MSGCONTENT.ID):
-                self.process_msg(msg_type, id_content[1], msg_content)
+            sender_id = msg_content.pop(MSGCONTENT.ID, None)
+            if sender_id is not None:
+                self.process_msg(msg_type, sender_id, msg_content)
 
             if msg_type == MESSAGES.TERMINATE:
                 self.running = False
@@ -101,3 +91,11 @@ class GameModule():
     def log(self, msg):
         """Print a log message to stdout, along with the module's ID"""
         print("%s(%d): %s" % (self.name, self.module_id, msg))
+    
+    def assert_msg_content(self, msg_type, msg_content, *expected_content):
+        found_all_expected_content = True
+        for content_type in expected_content:
+            if msg_content.get(content_type, None) is None:
+                self.log('Received %s, did not find expected %s' % (msg_type.name, content_type.name))
+                found_all_expected_content = False
+        return found_all_expected_content

@@ -43,12 +43,11 @@ class GameClient(GameModule):
         """Process an incoming message"""
         # self.log('received %s' % msg_type.name)
         if msg_type == MESSAGES.CONNECT_ACCEPT:
-            if self.assert_msg_content_size(msg_type, msg_content, 1):
-                new_id_content = msg_content[0]
-                if self.assert_msg_content_type(msg_type, new_id_content[0], MSGCONTENT.SET_ID):
-                    self.module_id = new_id_content[1]
-                    self.log("Connection to server successful, received client ID %d" % self.module_id)
-                    self.send_msg(MESSAGES.CONNECT_SUCCESS)
+            if self.assert_msg_content(msg_type, msg_content, MSGCONTENT.SET_ID):
+                new_id = msg_content[MSGCONTENT.SET_ID]
+                self.module_id = new_id
+                self.log("Connection to server successful, received client ID %d" % self.module_id)
+                self.send_msg(MESSAGES.CONNECT_SUCCESS)
         
         elif msg_type == MESSAGES.CONNECT_REJECT:
             self.log("Connection to server unsuccessful; connection rejected")
@@ -57,17 +56,18 @@ class GameClient(GameModule):
             self.disconnect(False)
         
         elif msg_type == MESSAGES.CREATE_ENTITY:
-            entity_id_content = msg_content[0]
-            entity_type_content = msg_content[1]
-            x_pos_content = msg_content[2]
-            y_pos_content = msg_content[3]
-            rotation_content = msg_content[4]
+            expected_content = (MSGCONTENT.ENTITY_ID, MSGCONTENT.ENTITY_TYPE, MSGCONTENT.X_POS, MSGCONTENT.Y_POS, MSGCONTENT.ROTATION)
+            if self.assert_msg_content(msg_type, msg_content, *expected_content):
+                entity_id = msg_content[MSGCONTENT.ENTITY_ID]
+                entity_type = msg_content[MSGCONTENT.ENTITY_TYPE]
+                pos = (msg_content[MSGCONTENT.X_POS], msg_content[MSGCONTENT.Y_POS])
+                rot = msg_content[MSGCONTENT.ROTATION]
 
-            if entity_type_content[1] == GAME.ENTITY_TEST:
-                e = EntitySprite('ship.png', (x_pos_content[1], y_pos_content[1]), rotation_content[1], entity_id_content[1], entity_type_content[1])
-                self.entities[e.entity_id] = e
-                self.sprites.add(e)
-                self.log('Added sprite for entity %d of type %s' % (e.entity_id, e.entity_type.name))
+                if entity_type == GAME.ENTITY_TEST:
+                    e = EntitySprite('ship.png', pos, rot, entity_id, entity_type)
+                    self.entities[e.entity_id] = e
+                    self.sprites.add(e)
+                    self.log('Added sprite for entity %d of type %s' % (e.entity_id, e.entity_type.name))
 
         elif msg_type == MESSAGES.DESTROY_ENTITY:
             entity_id_content = msg_content[0]
@@ -78,15 +78,15 @@ class GameClient(GameModule):
                 self.log('Received message to destroy sprite for entity %d, but sprite did not exist' % (entity_id_content[1]))
 
         elif msg_type == MESSAGES.UPDATEROT:
-            entity_id_content = msg_content[0]
-            rotation_content = msg_content[1]
-            e = self.entities.get(entity_id_content[1])
-            if e is not None:
-                e.rotation = rotation_content[1]
-            else:
-                self.log('Received message to update rotation for entity %d, but sprite does not exist' % (entity_id_content[1]))
-
-            # self.ship_sprite.rotation = msg_content[0][1]
+            expected_content = (MSGCONTENT.ENTITY_ID, MSGCONTENT.ROTATION)
+            if self.assert_msg_content(msg_type, msg_content, *expected_content):
+                entity_id = msg_content[MSGCONTENT.ENTITY_ID]
+                rot = msg_content[MSGCONTENT.ROTATION]
+                e = self.entities.get(entity_id)
+                if e is not None:
+                    e.rotation = rot
+                else:
+                    self.log('Received message to update rotation for entity %d, but sprite does not exist' % entity_id)
 
     def disconnect(self, should_send_signal=True):
         """Disconnect this client from a server"""

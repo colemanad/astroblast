@@ -74,12 +74,13 @@ class GameClient(GameModule):
                     self.log('Added sprite for entity %d of type %s' % (e.entity_id, e.entity_type.name))
 
         elif msg_type == MESSAGES.DESTROY_ENTITY:
-            entity_id_content = msg_content[0]
-            e = self.entities.pop(entity_id_content[1], None)
-            if e is not None:
-                self.sprites.remove(e)
-            else:
-                self.log('Received message to destroy sprite for entity %d, but sprite did not exist' % (entity_id_content[1]))
+            if self.assert_msg_content(msg_type, msg_content, MSGCONTENT.ENTITY_ID):
+                entity_id = msg_content[MSGCONTENT.ENTITY_ID]
+                e = self.entities.pop(entity_id)
+                if e is not None:
+                    self.sprites.remove(e)
+                else:
+                    self.log('Received message to destroy sprite for entity %d, but sprite did not exist' % entity_id)
 
         elif msg_type == MESSAGES.UPDATEROT:
             expected_content = (MSGCONTENT.ENTITY_ID, MSGCONTENT.ROTATION)

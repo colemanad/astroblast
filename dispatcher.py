@@ -104,6 +104,7 @@ class Dispatcher(Thread, GameModule):
             if an_id not in self.ids:
                 # Found an unused id less than next_id
                 self.log('Reusing id %d' % an_id)
+                self.id_lock.release()
                 return an_id
         # didn't find any unused ids below next_id
         an_id = self.next_id

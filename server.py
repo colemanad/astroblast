@@ -13,12 +13,14 @@ from threading import Thread
 
 import time
 from queue import Queue
+from random import randrange
 
 import pygame
 
 from gamemodule import GameModule
 from constants import MESSAGES, MSGCONTENT, GAME
 from entity import Entity
+from testcomponent import TestComponent
 
 class GameServer(GameModule, Thread):
     """Implements the server module which manages the internal game state."""
@@ -32,13 +34,15 @@ class GameServer(GameModule, Thread):
         self.ms_per_frame = 1.0 / (GAME.FPS / 2.0) * 1000.0
         self.last_ticks = 0
         self.ticks_since_last_update = 0
+        self.test_auto_spawn_ticks = 0
 
         self.clients = set()
         self.entities = {}
+        self.unused_entities = []
 
     def run(self):
         """Gets called at thread start"""
-        self.create_entity(GAME.ENTITY_TEST, (400, 300))
+        # self.create_entity(GAME.ENTITY_TEST, (400, 300))
         while self.running:
             self.check_msgs()
             self.update()
@@ -73,19 +77,27 @@ class GameServer(GameModule, Thread):
         current_ticks = pygame.time.get_ticks()
         diff = current_ticks - self.last_ticks
         self.ticks_since_last_update += diff
+        self.test_auto_spawn_ticks += diff
 
         # Run update logic if enough time has elapsed
         if self.ticks_since_last_update >= self.ms_per_frame:
             self.ticks_since_last_update -= self.ms_per_frame
+            # self.log('update %d' % current_ticks)
+
+            if self.test_auto_spawn_ticks >= 1000:
+                self.test_auto_spawn_ticks = 0
+                # destroy a test entity if 20 or more exist
+                if len(self.entities) >= 20:
+                    entity_id = list(self.entities.keys())[randrange(len(self.entities))]
+                    self.destroy_entity(entity_id)
+                
+                # spawn a test entity in a random spot
+                pos = (randrange(800), randrange(600))
+                self.create_entity(GAME.ENTITY_TEST, pos)
 
             # Update entities
             for e in self.entities.values():
-                e.rotation += 1
-                while e.rotation >= 360 or e.rotation < 0:
-                    if e.rotation >= 360:
-                        e.rotation -= 360
-                    elif e.rotation < 0:
-                        e.rotation += 360
+                e.update()
             
             # Update clients
             # Send entity state to clients
@@ -109,17 +121,25 @@ class GameServer(GameModule, Thread):
             self.send_msg(msg_type, client_id, *msg_content)
 
     def create_entity(self, entity_type, pos=(0, 0), rot=0, bounds=pygame.Rect(-0.5, -0.5, 1, 1)):
-        if entity_type == GAME.ENTITY_TEST:
+        try:
+            e = self.unused_entities.pop()
+            e.initialize(pos, rot, bounds, self.dispatch.get_id(), entity_type)
+        except IndexError:
+            self.log('No unused entities free, creating a new one')
             e = Entity(pos, rot, bounds, self.dispatch.get_id(), entity_type)
+
+        if entity_type == GAME.ENTITY_TEST:
+            e.add_component(TestComponent())
 
         e.visible = True
         e.active = True
         self.entities[e.entity_id] = e
         self.send_msg_all_clients(MESSAGES.CREATE_ENTITY, (MSGCONTENT.ENTITY_ID, e.entity_id), (MSGCONTENT.ENTITY_TYPE, e.entity_type), (MSGCONTENT.X_POS, e.position[0]), (MSGCONTENT.Y_POS, e.position[1]), (MSGCONTENT.ROTATION, e.rotation))
-        self.log('Created entity %d of type %s' % (e.entity_id, e.entity_type.name))
+        self.log('Spawned entity %d of type %s' % (e.entity_id, e.entity_type.name))
     
     def destroy_entity(self, entity_id):
         e = self.entities.pop(entity_id, None)
         if e is not None:
             self.send_msg_all_clients(MESSAGES.DESTROY_ENTITY, (MSGCONTENT.ENTITY_ID, e.entity_id))
             self.dispatch.release_id(e.entity_id)
+            self.unused_entities.append(e)

@@ -20,6 +20,9 @@ class GameClient(GameModule):
     def __init__(self, inQueue, outQueue):
         GameModule.__init__(self, inQueue, outQueue)
         self.name = 'Client'
+        self.module_id = int(GAME.LOCAL_CLIENT_ID.value)
+        self.server_id = int(GAME.INVALID_ID.value)
+        self.local_server_id = int(GAME.LOCAL_SERVER_ID.value)
 
         # Initialize pyGame
         pygame.init()
@@ -36,7 +39,7 @@ class GameClient(GameModule):
 
     def quit(self):
         """Sends quit message and halts client"""
-        self.send_msg(MESSAGES.TERMINATE)
+        self.send_msg(MESSAGES.TERMINATE, self.local_server_id)
         self.running = False
     
     def process_msg(self, msg_type, sender_id, msg_content):
@@ -46,8 +49,9 @@ class GameClient(GameModule):
             if self.assert_msg_content(msg_type, msg_content, MSGCONTENT.SET_ID):
                 new_id = msg_content[MSGCONTENT.SET_ID]
                 self.module_id = new_id
+                self.server_id = sender_id
                 self.log("Connection to server successful, received client ID %d" % self.module_id)
-                self.send_msg(MESSAGES.CONNECT_SUCCESS)
+                self.send_msg(MESSAGES.CONNECT_SUCCESS, sender_id)
         
         elif msg_type == MESSAGES.CONNECT_REJECT:
             self.log("Connection to server unsuccessful; connection rejected")
@@ -92,10 +96,10 @@ class GameClient(GameModule):
         """Disconnect this client from a server"""
         # TODO: Check if connected before proceeding
         if should_send_signal:
-            self.send_msg(MESSAGES.SIGNAL_DISCONNECT)
+            self.send_msg(MESSAGES.SIGNAL_DISCONNECT, self.server_id)
 
         self.log("Disconnected from server")
-        self.module_id = int(GAME.INVALID_ID.value)
+        self.module_id = int(GAME.LOCAL_CLIENT_ID.value)
 
         # Delete sprites
         self.sprites.empty()
@@ -118,7 +122,8 @@ class GameClient(GameModule):
                 if event.key == pygame.K_ESCAPE:
                     self.quit()
                 elif event.key == pygame.K_SPACE:
-                    self.send_msg(MESSAGES.REQCONNECT)
+                    # Always use local server here, because this is just for testing purposes
+                    self.send_msg(MESSAGES.REQCONNECT, self.local_server_id)
                 elif event.key == pygame.K_BACKSPACE:
                     self.disconnect()
             elif event.type == pygame.QUIT:

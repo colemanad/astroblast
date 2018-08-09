@@ -12,6 +12,7 @@
 from threading import Thread
 
 import time
+from queue import Queue
 
 import pygame
 
@@ -21,21 +22,18 @@ from entity import Entity
 
 class GameServer(GameModule, Thread):
     """Implements the server module which manages the internal game state."""
-    def __init__(self, inQueue, outQueue):
+    def __init__(self, in_queue, dispatch):
         Thread.__init__(self)
-        GameModule.__init__(self, inQueue, outQueue)
+        self.dispatch = dispatch
+        GameModule.__init__(self, in_queue, dispatch.in_queue)
         self.name = "Server"
-        self.rot = 0
+        self.module_id = int(GAME.LOCAL_SERVER_ID.value)
+
         self.ms_per_frame = 1.0 / (GAME.FPS / 2.0) * 1000.0
         self.last_ticks = 0
         self.ticks_since_last_update = 0
 
         self.clients = set()
-
-        self.module_id = int(GAME.SERVER_ID.value)
-        self.next_id = self.module_id + 1
-        self.ids = [ self.module_id ]
-
         self.entities = {}
 
     def run(self):
@@ -45,53 +43,28 @@ class GameServer(GameModule, Thread):
             self.check_msgs()
             self.update()
     
-    def get_id(self):
-        for an_id in range(self.next_id):
-            if an_id not in self.ids:
-                # Found an unused id less than next_id
-                self.log('Reusing id %d' % an_id)
-                return an_id
-        # didn't find any unused ids below next_id
-        an_id = self.next_id
-        self.ids.append(an_id)
-        self.next_id += 1
-        self.log('Generated id %d' % an_id)
-        return an_id
-
-    def release_id(self, an_id):
-        if an_id in self.ids:
-            self.ids.remove(an_id)
-            self.log('Released id %d' % an_id)
-        else:
-            self.log('Tried to release id %d, but it was not taken' % an_id)
     
     def process_msg(self, msg_type, sender_id, msg_content):
         """Process an incoming message"""
-        # self.log('received %s' % msg_type.name)
+        self.log('received %s' % msg_type.name)
         if msg_type == MESSAGES.REQCONNECT:
-            if sender_id == int(GAME.INVALID_ID.value):
-                # This is a new client, assign a new ID
-                an_id = self.get_id()
-                self.log("Registering new client with ID %d" % an_id)
-                self.clients.add(an_id)
+            if sender_id not in self.clients:
+                self.log('Connection accepted for client %d' % sender_id)
+                self.clients.add(sender_id)
                 # TODO: create game state object and associate it with new ID?
-                self.send_msg(MESSAGES.CONNECT_ACCEPT, (MSGCONTENT.SET_ID, an_id))
-
+                self.send_msg(MESSAGES.CONNECT_ACCEPT, sender_id, (MSGCONTENT.SET_ID, sender_id))
             else:
-                # Client already exists, reject connection attempt
-                self.log("Client with ID %d already exists, rejecting connection request" % sender_id)
-                # TODO: recipient ID/address?
-                self.send_msg(MESSAGES.CONNECT_REJECT)
+                self.log('Client %d has already connected, additional connection refused' % sender_id)
+                self.send_msg(MESSAGES.CONNECT_REJECT, sender_id)
         
         elif msg_type == MESSAGES.CONNECT_SUCCESS:
             # Tell new client about all existing entities
             for e in self.entities.values():
-                self.send_msg(MESSAGES.CREATE_ENTITY, (MSGCONTENT.ENTITY_ID, e.entity_id), (MSGCONTENT.ENTITY_TYPE, e.entity_type), (MSGCONTENT.X_POS, e.position[0]), (MSGCONTENT.Y_POS, e.position[1]), (MSGCONTENT.ROTATION, e.rotation))
+                self.send_msg(MESSAGES.CREATE_ENTITY, sender_id, (MSGCONTENT.ENTITY_ID, e.entity_id), (MSGCONTENT.ENTITY_TYPE, e.entity_type), (MSGCONTENT.X_POS, e.position[0]), (MSGCONTENT.Y_POS, e.position[1]), (MSGCONTENT.ROTATION, e.rotation))
 
         elif msg_type == MESSAGES.SIGNAL_DISCONNECT:
             self.log("Received disconnect signal from client %d" % sender_id)
             self.clients.discard(sender_id)
-            self.release_id(sender_id)
 
     def update(self):
         """Update internal game state"""
@@ -132,12 +105,12 @@ class GameServer(GameModule, Thread):
         super().update()
 
     def send_msg_all_clients(self, msg_type, *msg_content):
-        for client in self.clients:
-            self.send_msg(msg_type, *msg_content)
+        for client_id in self.clients:
+            self.send_msg(msg_type, client_id, *msg_content)
 
     def create_entity(self, entity_type, pos=(0, 0), rot=0, bounds=pygame.Rect(-0.5, -0.5, 1, 1)):
         if entity_type == GAME.ENTITY_TEST:
-            e = Entity(pos, rot, bounds, self.get_id(), entity_type)
+            e = Entity(pos, rot, bounds, self.dispatch.get_id(), entity_type)
 
         e.visible = True
         e.active = True
@@ -149,4 +122,4 @@ class GameServer(GameModule, Thread):
         e = self.entities.pop(entity_id, None)
         if e is not None:
             self.send_msg_all_clients(MESSAGES.DESTROY_ENTITY, (MSGCONTENT.ENTITY_ID, e.entity_id))
-            self.release_id(e.entity_id)
+            self.dispatch.release_id(e.entity_id)

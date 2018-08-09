@@ -11,20 +11,26 @@
 
 from queue import Queue
 
+from dispatcher import Dispatcher
 from client import GameClient
 from server import GameServer
 
 def main():
     """Application entry point"""
+    dispatch_queue = Queue()
+    remote_queue = Queue()
     # queue of messages for the server
     server_queue = Queue()
     # queue of messages for the client
-    client_queue = Queue()
+    local_client_queue = Queue()
+
+    dispatch = Dispatcher(dispatch_queue, server_queue, local_client_queue, remote_queue)
 
     # Instantiate the server and client modules
-    server = GameServer(server_queue, client_queue)
-    client = GameClient(client_queue, server_queue)
+    server = GameServer(server_queue, dispatch)
+    client = GameClient(local_client_queue, dispatch_queue)
 
+    dispatch.start()
     # Start the server on a separate thread
     server.start()
 

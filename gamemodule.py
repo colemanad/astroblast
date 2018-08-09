@@ -14,15 +14,15 @@ from constants import GAME, MESSAGES, MSGCONTENT
 # Base class for server & client modules
 class GameModule():
     """Base class for the client and server modules"""
-    def __init__(self, inQueue, outQueue):
+    def __init__(self, in_queue, out_queue):
         # Name is used for logging
         self.name = "unknown"
         self.running = True
 
         # Queue of incoming messages
-        self.in_queue = inQueue
+        self.in_queue = in_queue
         # Queue of outgoing messages
-        self.out_queue = outQueue
+        self.out_queue = out_queue
 
         self.module_id = int(GAME.INVALID_ID.value)
 
@@ -43,7 +43,7 @@ class GameModule():
             self.cleanup()
             self.log("quitting")
 
-    def send_msg(self, msg_type, *content):
+    def send_msg(self, msg_type, recipient_id, *content):
         """Send a message to counterpart (i.e., the client or server)"""
         # TODO: Update message format to include recipient ID
         # Message format:
@@ -59,7 +59,9 @@ class GameModule():
         # (ID, X_POS, and Y_POS are all symbolic constants in constants.py)
 
         content_list = list(content)
-        content_list.insert(0, (MSGCONTENT.ID, self.module_id))
+        if not self.module_id == int(GAME.DISPATCHER_ID.value):
+            content_list.insert(0, (MSGCONTENT.ID, self.module_id))
+        content_list.insert(1, (MSGCONTENT.RECIPIENT_ID, recipient_id))
 
         # Convert *args to a dictionary
         msg_content = {}
@@ -68,17 +70,17 @@ class GameModule():
 
         msg = (msg_type, msg_content)
         self.out_queue.put(msg, True)
-        # self.log('sending %s' % msg_type.name)
+        # self.log('sending %s from %d to %d' % (msg_type.name, msg_content[MSGCONTENT.ID], recipient_id))
     
     def check_msgs(self):
         """Process all incoming messages"""
         # Check queue for new messages & respond to each
         while not self.in_queue.empty():
             msg_type, msg_content = self.in_queue.get_nowait()
-            # print("%s: received %s" % (self.name, msg_type.name))
             self.in_queue.task_done()
 
-            sender_id = msg_content.pop(MSGCONTENT.ID, None)
+            sender_id = msg_content.get(MSGCONTENT.ID, None)
+            # print("%s: received %s from %d to %d" % (self.name, msg_type.name, sender_id, msg_content[MSGCONTENT.RECIPIENT_ID]))
             if sender_id is not None:
                 self.process_msg(msg_type, sender_id, msg_content)
 
@@ -86,7 +88,7 @@ class GameModule():
                 self.running = False
 
             elif msg_type == MESSAGES.PING:
-                self.send_msg(MESSAGES.PONG)
+                self.send_msg(MESSAGES.PONG, sender_id)
 
     def log(self, msg):
         """Print a log message to stdout, along with the module's ID"""

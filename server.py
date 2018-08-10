@@ -103,7 +103,7 @@ class GameServer(GameModule, Thread):
                 # spawn a bullet with a random trajectory
                 pos = [random.randrange(800), random.randrange(600)]
                 angle = math.radians(random.randrange(360))
-                vel = [math.cos(angle)*3, -math.sin(angle)*3]
+                vel = [math.cos(angle)*200, -math.sin(angle)*200]
                 self.create_entity(GAME.ENTITY_BULLET, pos, 0, vel, 0)
 
             # Asteroid-bullet collisions
@@ -111,7 +111,7 @@ class GameServer(GameModule, Thread):
 
             # Update entities
             for e in self.entities.values():
-                e.update()
+                e.update(diff/1000)
             
             
             # Update clients
@@ -134,8 +134,8 @@ class GameServer(GameModule, Thread):
     def spawn_asteroid(self, pos, kind):
         # Spawn an asteroid in a random spot
         rot = random.randrange(360)
-        vel = [random.uniform(0.5, 1.5)*random.choice([-1, 1]), random.uniform(0.5, 1.5)*random.choice([-1, 1])]
-        avel = random.uniform(0.3, 3.0)*random.choice([-1, 1])
+        vel = [random.uniform(25, 75)*random.choice([-1, 1]), random.uniform(25, 75)*random.choice([-1, 1])]
+        avel = random.uniform(15, 150)*random.choice([-1, 1])
         self.create_entity(kind, pos, rot, vel, avel)
 
     def collide_group_and_entity(self, group, other):

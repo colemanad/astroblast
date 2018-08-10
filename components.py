@@ -12,13 +12,13 @@
 from constants import GAME
 
 class TestComponent():
-    def update(self, parent):
+    def update(self, parent, delta_time):
         # Update position
-        parent.position[0] = (parent.position[0] + parent.velocity[0]) % GAME.WIDTH
-        parent.position[1] = (parent.position[1] + parent.velocity[1]) % GAME.WIDTH
+        parent.position[0] = (parent.position[0] + parent.velocity[0]*delta_time) % GAME.WIDTH
+        parent.position[1] = (parent.position[1] + parent.velocity[1]*delta_time) % GAME.WIDTH
 
         # Update rotation
-        parent.rotation += 1
+        parent.rotation += 1*delta_time
         while parent.rotation >= 360 or parent.rotation < 0:
             if parent.rotation >= 360:
                 parent.rotation -= 360
@@ -26,13 +26,13 @@ class TestComponent():
                 parent.rotation += 360
 
 class AsteroidComponent():
-    def update(self, parent):
+    def update(self, parent, delta_time):
         # Update position
-        parent.position[0] = (parent.position[0] + parent.velocity[0]) % GAME.WIDTH
-        parent.position[1] = (parent.position[1] + parent.velocity[1]) % GAME.WIDTH
+        parent.position[0] = (parent.position[0] + parent.velocity[0]*delta_time) % GAME.WIDTH
+        parent.position[1] = (parent.position[1] + parent.velocity[1]*delta_time) % GAME.WIDTH
 
         # Update rotation
-        parent.rotation += parent.angular_velocity
+        parent.rotation += parent.angular_velocity*delta_time
         while parent.rotation >= 360 or parent.rotation < 0:
             if parent.rotation >= 360:
                 parent.rotation -= 360
@@ -40,7 +40,7 @@ class AsteroidComponent():
                 parent.rotation += 360
 
 class BulletComponent():
-    def update(self, parent):
+    def update(self, parent, delta_time):
         # Update position
-        parent.position[0] = (parent.position[0] + parent.velocity[0]) % GAME.WIDTH
-        parent.position[1] = (parent.position[1] + parent.velocity[1]) % GAME.WIDTH
+        parent.position[0] = (parent.position[0] + parent.velocity[0]*delta_time) % GAME.WIDTH
+        parent.position[1] = (parent.position[1] + parent.velocity[1]*delta_time) % GAME.WIDTH

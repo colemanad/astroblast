@@ -31,9 +31,9 @@ class Entity():
     def add_component(self, component):
         self.components.append(component)
     
-    def update(self):
+    def update(self, delta_time):
         for c in self.components:
-            c.update(self)
+            c.update(self, delta_time)
     
     def collide(self, other):
         if distance(self.position, other.position) <= self.radius + other.radius:

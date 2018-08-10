@@ -9,34 +9,20 @@
 #   The assets have been modified.
 #   https://opengameart.org/content/rocks-ships-stars-gold-and-more
 
-from os import path
 import pygame
 
 from constants import GAME
 
-# Paths
-ASSETSDIR = path.join(path.dirname(__file__), 'assets')
-
-def load_image(name, colorkey=None):
-    """Load an image with the specified filename."""
-    filename = path.join(ASSETSDIR, name)
-    try:
-        image = pygame.image.load(filename).convert_alpha()
-    except pygame.error as message:
-        print('Cannot load image: %s' % name)
-        raise SystemExit from message
-    if colorkey is not None:
-        if colorkey is -1:
-            colorkey = image.get_at((0,0))
-        image.set_colorkey(colorkey, pygame.RLEACCEL)
-    return image, image.get_rect()
-
 class EntitySprite(pygame.sprite.Sprite):
     """Represents a sprite (2D image) displayed on the screen."""
-    def __init__(self, image_name, initial_pos=(0, 0), initial_rot=0, entity_id=0, entity_type=GAME.ENTITY_NONE):
+    def __init__(self, images, initial_pos=(0, 0), initial_rot=0, entity_id=0, entity_type=GAME.ENTITY_NONE):
         pygame.sprite.Sprite.__init__(self)
-        self.image, self.rect = load_image(image_name)
+        # self.images = load_image_all_rotations(image_name)
+        # self.image, self.rect = load_image(image_name)
+        self.images = images
+        self.image, self.rect = self.images[int(initial_rot)]
         self.rect.topleft = initial_pos
+        self.position = initial_pos
         self.original = self.image
         self.rotation = initial_rot
         self.entity_id = entity_id
@@ -45,13 +31,5 @@ class EntitySprite(pygame.sprite.Sprite):
     # TODO: delta time
     def update(self):
         """Update sprite position, rotation, etc."""
-        # clamp rotation within [0, 360), but allow it to "wrap around"
-        # while self.rotation >= 360 or self.rotation < 0:
-            # if self.rotation >= 360:
-                # self.rotation -= 360
-            # elif self.rotation < 0:
-                # self.rotation += 360
-        center = self.rect.center
-        # self.image = pygame.transform.rotate(self.original, self.rotation)
-        self.image = pygame.transform.rotozoom(self.original, self.rotation, 1)
-        self.rect = self.image.get_rect(center=center)
+        self.image, self.rect = self.images[int(self.rotation)]
+        self.rect = self.image.get_rect(center=self.position)

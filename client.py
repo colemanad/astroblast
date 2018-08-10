@@ -9,11 +9,40 @@
 #   The assets have been modified.
 #   https://opengameart.org/content/rocks-ships-stars-gold-and-more
 
+from os import path
 import pygame
 
 from gamemodule import GameModule
 from constants import GAME, MESSAGES, MSGCONTENT
 from entitysprite import EntitySprite
+
+# Paths
+ASSETSDIR = path.join(path.dirname(__file__), 'assets')
+
+def load_image(name, colorkey=None):
+    """Load an image with the specified filename."""
+    filename = path.join(ASSETSDIR, name)
+    try:
+        image = pygame.image.load(filename).convert_alpha()
+    except pygame.error as message:
+        print('Cannot load image: %s' % name)
+        raise SystemExit from message
+    if colorkey is not None:
+        if colorkey is -1:
+            colorkey = image.get_at((0,0))
+        image.set_colorkey(colorkey, pygame.RLEACCEL)
+    return image, image.get_rect()
+
+def load_image_all_rotations(name, colorkey=None):
+    image, rect = load_image(name, colorkey)
+    images = {}
+    for angle in range(360):
+        # center = rect.center
+        rotated_image = pygame.transform.rotozoom(image, angle, 1)
+        # rotated_rect = rotated_image.get_rect(center=center)
+        rotated_rect = rect
+        images[angle] = (rotated_image, rotated_rect)
+    return images
 
 class GameClient(GameModule):
     """Contains game client and pyGame functionality."""
@@ -29,6 +58,8 @@ class GameClient(GameModule):
         self.screen = pygame.display.set_mode((GAME.WIDTH, GAME.HEIGHT))
         pygame.display.set_caption('AstroBlast!')
         self.clock = pygame.time.Clock()
+
+        self.images = {'ship':load_image_all_rotations('ship.png')}
 
         # Create a sprite to draw on the screen
         self.entities = {}
@@ -68,7 +99,8 @@ class GameClient(GameModule):
                 rot = msg_content[MSGCONTENT.ROTATION]
 
                 if entity_type == GAME.ENTITY_TEST:
-                    e = EntitySprite('ship.png', pos, rot, entity_id, entity_type)
+                    # e = EntitySprite('ship.png', pos, rot, entity_id, entity_type)
+                    e = EntitySprite(self.images['ship'], pos, rot, entity_id, entity_type)
                     self.entities[e.entity_id] = e
                     self.sprites.add(e)
                     self.log('Added sprite for entity %d of type %s' % (e.entity_id, e.entity_type.name))

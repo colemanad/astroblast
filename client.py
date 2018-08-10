@@ -14,7 +14,7 @@ import pygame
 
 from gamemodule import GameModule
 from constants import GAME, MESSAGES, MSGCONTENT
-from entitysprite import EntitySprite
+from entitysprite import EntitySprite, SpriteInfo
 
 # Paths
 ASSETSDIR = path.join(path.dirname(__file__), 'assets')
@@ -37,9 +37,7 @@ def load_image_all_rotations(name, colorkey=None):
     image, rect = load_image(name, colorkey)
     images = {}
     for angle in range(360):
-        # center = rect.center
         rotated_image = pygame.transform.rotozoom(image, angle, 1)
-        # rotated_rect = rotated_image.get_rect(center=center)
         rotated_rect = rect
         images[angle] = (rotated_image, rotated_rect)
     return images
@@ -59,11 +57,13 @@ class GameClient(GameModule):
         pygame.display.set_caption('AstroBlast!')
         self.clock = pygame.time.Clock()
 
-        self.images = {'ship':load_image_all_rotations('ship.png'),
-                       'asteroid_big':load_image_all_rotations('asteroid_big.png'),
-                       'asteroid_med':load_image_all_rotations('asteroid_med.png'),
-                       'asteroid_small':load_image_all_rotations('asteroid_small.png'),
-                       'bullet_g':load_image_all_rotations('bullet_g.png')}
+        self.frames = {'ship':[load_image_all_rotations('ship.png')],
+                       'asteroid_big':[load_image_all_rotations('asteroid_big.png')],
+                       'asteroid_med':[load_image_all_rotations('asteroid_med.png')],
+                       'asteroid_small':[load_image_all_rotations('asteroid_small.png')],
+                       'bullet_g':[load_image_all_rotations('bullet_g.png')],
+                       'explosion':[load_image_all_rotations('explosion_1.png'),
+                                    load_image_all_rotations('explosion_2.png')]}
 
         self.entities = {}
         self.unused_entities = []
@@ -109,36 +109,36 @@ class GameClient(GameModule):
                     e = EntitySprite(None)
 
                 if entity_type == GAME.ENTITY_TEST:
-                    # e = EntitySprite(self.images['ship'], pos, rot, entity_id, entity_type)
-                    e.initialize(self.images['ship'], pos, rot, entity_id, entity_type)
+                    info = SpriteInfo(entity_type, self.frames['ship'], 0, 0)
+                    e.initialize(info, pos, rot, entity_id, entity_type)
                     self.entities[e.entity_id] = e
                     self.sprites.add(e)
                     self.log('Added sprite for entity %d of type %s' % (e.entity_id, e.entity_type.name))
 
                 elif entity_type == GAME.ENTITY_ASTEROID_BIG:
-                    # e = EntitySprite(self.images['asteroid_big'], pos, rot, entity_id, entity_type)
-                    e.initialize(self.images['asteroid_big'], pos, rot, entity_id, entity_type)
+                    info = SpriteInfo(entity_type, self.frames['asteroid_big'], 0, 0)
+                    e.initialize(info, pos, rot, entity_id, entity_type)
                     self.entities[e.entity_id] = e
                     self.sprites.add(e)
                     self.log('Added sprite for entity %d of type %s' % (e.entity_id, e.entity_type.name))
 
                 elif entity_type == GAME.ENTITY_ASTEROID_MED:
-                    # e = EntitySprite(self.images['asteroid_med'], pos, rot, entity_id, entity_type)
-                    e.initialize(self.images['asteroid_med'], pos, rot, entity_id, entity_type)
+                    info = SpriteInfo(entity_type, self.frames['asteroid_med'], 0, 0)
+                    e.initialize(info, pos, rot, entity_id, entity_type)
                     self.entities[e.entity_id] = e
                     self.sprites.add(e)
                     self.log('Added sprite for entity %d of type %s' % (e.entity_id, e.entity_type.name))
 
                 elif entity_type == GAME.ENTITY_ASTEROID_SMALL:
-                    # e = EntitySprite(self.images['asteroid_small'], pos, rot, entity_id, entity_type)
-                    e.initialize(self.images['asteroid_small'], pos, rot, entity_id, entity_type)
+                    info = SpriteInfo(entity_type, self.frames['asteroid_small'], 0, 0)
+                    e.initialize(info, pos, rot, entity_id, entity_type)
                     self.entities[e.entity_id] = e
                     self.sprites.add(e)
                     self.log('Added sprite for entity %d of type %s' % (e.entity_id, e.entity_type.name))
 
                 elif entity_type == GAME.ENTITY_BULLET:
-                    # e = EntitySprite(self.images['bullet_g'], pos, rot, entity_id, entity_type)
-                    e.initialize(self.images['bullet_g'], pos, rot, entity_id, entity_type)
+                    info = SpriteInfo(entity_type, self.frames['bullet_g'], 0, 0)
+                    e.initialize(info, pos, rot, entity_id, entity_type)
                     self.entities[e.entity_id] = e
                     self.sprites.add(e)
                     self.log('Added sprite for entity %d of type %s' % (e.entity_id, e.entity_type.name))

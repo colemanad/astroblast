@@ -89,7 +89,8 @@ class GameServer(GameModule, Thread):
 
         # Run update logic if enough time has elapsed
         if self.ticks_since_last_update >= self.ms_per_frame:
-            self.ticks_since_last_update -= self.ms_per_frame
+            # self.ticks_since_last_update -= self.ms_per_frame
+            self.ticks_since_last_update = 0
 
             if len(self.asteroids) < 10:
                 # Spawn an asteroid in a random spot

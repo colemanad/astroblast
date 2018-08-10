@@ -10,7 +10,7 @@
 #   https://opengameart.org/content/rocks-ships-stars-gold-and-more
 
 from queue import Queue
-import cProfile
+import cProfile, time
 
 import pygame
 
@@ -44,19 +44,26 @@ def main():
 
         ms_per_frame = 1000.0 / 60.0
         last_ticks = 0
-        ticks_since_last_update = 17
+        ticks_since_last_update = 0
 
         running = True
         while running:
             current_ticks = pygame.time.get_ticks()
             diff = current_ticks - last_ticks
             ticks_since_last_update += diff
+            # print('c:%d l:%d d:%d u:%d' % (current_ticks, last_ticks, diff, ticks_since_last_update))
 
             if ticks_since_last_update >= ms_per_frame:
+                ticks_since_last_update = 0
                 # Check & process incoming messages to the client
                 client.check_msgs()
                 # Update client-side game state / Process user input
                 client.update()
+
+                last_ticks = current_ticks
+            else:
+                # print('sleep')
+                time.sleep(diff/1000.0)
 
             # Shut down if the client quits
             if not client.running:

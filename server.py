@@ -95,8 +95,11 @@ class GameServer(GameModule, Thread):
                     self.destroy_entity(entity_id)
                 
                 # spawn a test entity in a random spot
-                pos = (random.randrange(800), random.randrange(600))
-                self.create_entity(GAME.ENTITY_TEST, pos)
+                pos = [random.randrange(800), random.randrange(600)]
+                rot = random.randrange(360)
+                # vel = [random.randrange(-3,4), random.randrange(-3,4)]
+                vel = [random.uniform(-1.5, 1.5), random.uniform(-1.5, 1.5)]
+                self.create_entity(GAME.ENTITY_TEST, pos, rot, vel)
 
             # Update entities
             for e in self.entities.values():
@@ -119,14 +122,14 @@ class GameServer(GameModule, Thread):
 
         super().update()
 
-    def create_entity(self, entity_type, pos=(0, 0), rot=0, bounds=pygame.Rect(-0.5, -0.5, 1, 1)):
+    def create_entity(self, entity_type, pos=[0, 0], rot=0, vel=[0, 0], bounds=pygame.Rect(-0.5, -0.5, 1, 1)):
         try:
             e = self.unused_entities.pop()
             self.log('Reusing entity')
-            e.initialize(pos, rot, bounds, self.dispatch.get_id(), entity_type)
+            e.initialize(pos, rot, vel, bounds, self.dispatch.get_id(), entity_type)
         except IndexError:
             self.log('No unused entities free, creating a new one')
-            e = Entity(pos, rot, bounds, self.dispatch.get_id(), entity_type)
+            e = Entity(pos, rot, vel, bounds, self.dispatch.get_id(), entity_type)
 
         if entity_type == GAME.ENTITY_TEST:
             e.add_component(TestComponent())

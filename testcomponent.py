@@ -9,8 +9,15 @@
 #   The assets have been modified.
 #   https://opengameart.org/content/rocks-ships-stars-gold-and-more
 
+from constants import GAME
+
 class TestComponent():
     def update(self, parent):
+        # Update position
+        parent.position[0] = (parent.position[0] + parent.velocity[0]) % GAME.WIDTH
+        parent.position[1] = (parent.position[1] + parent.velocity[1]) % GAME.WIDTH
+
+        # Update rotation
         parent.rotation += 1
         while parent.rotation >= 360 or parent.rotation < 0:
             if parent.rotation >= 360:

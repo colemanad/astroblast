@@ -124,6 +124,17 @@ class GameClient(GameModule):
                     e.rotation = rot
                 else:
                     self.log('Received message to update rotation for entity %d, but sprite does not exist' % entity_id)
+        
+        elif msg_type == MESSAGES.UPDATEPOS:
+            expected_content = (MSGCONTENT.X_POS, MSGCONTENT.Y_POS)
+            if self.assert_msg_content(msg_type, msg_content, *expected_content):
+                entity_id = msg_content[MSGCONTENT.ENTITY_ID]
+                pos = (msg_content[MSGCONTENT.X_POS], msg_content[MSGCONTENT.Y_POS])
+                e = self.entities.get(entity_id)
+                if e is not None:
+                    e.position = pos
+                else:
+                    self.log('Received message to update position for entity %d, but sprite does not exist' % entity_id)
 
     def disconnect(self, should_send_signal=True):
         """Disconnect this client from a server"""

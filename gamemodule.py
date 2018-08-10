@@ -10,6 +10,7 @@
 #   https://opengameart.org/content/rocks-ships-stars-gold-and-more
 
 from constants import GAME, MESSAGES, MSGCONTENT
+import queue
 
 # Base class for server & client modules
 class GameModule():
@@ -42,6 +43,18 @@ class GameModule():
         if not self.running:
             self.cleanup()
             self.log("quitting")
+    
+    def prepare_msg(self, *content):
+        content_list = list(content)
+        if self.module_id != int(GAME.DISPATCHER_ID.value):
+            content_list.insert(0, (MSGCONTENT.ID, self.module_id))
+
+        # Convert *args to a dictionary
+        msg_content = {}
+        for pair in content_list:
+            msg_content[pair[0]] = pair[1]
+        
+        return msg_content
 
     def send_msg(self, msg_type, recipient_id, *content):
         """Send a message to counterpart (i.e., the client or server)"""
@@ -58,15 +71,8 @@ class GameModule():
         #   content = ID 12345, X = 14, Y = 15
         # (ID, X_POS, and Y_POS are all symbolic constants in constants.py)
 
-        content_list = list(content)
-        if not self.module_id == int(GAME.DISPATCHER_ID.value):
-            content_list.insert(0, (MSGCONTENT.ID, self.module_id))
-        content_list.insert(1, (MSGCONTENT.RECIPIENT_ID, recipient_id))
-
-        # Convert *args to a dictionary
-        msg_content = {}
-        for pair in content_list:
-            msg_content[pair[0]] = pair[1]
+        msg_content = self.prepare_msg(*content)
+        msg_content[MSGCONTENT.RECIPIENT_ID] = recipient_id
 
         msg = (msg_type, msg_content)
         self.out_queue.put(msg, True)
@@ -75,24 +81,28 @@ class GameModule():
     def check_msgs(self):
         """Process all incoming messages"""
         # Check queue for new messages & respond to each
-        while not self.in_queue.empty():
-            msg_type, msg_content = self.in_queue.get_nowait()
-            self.in_queue.task_done()
+        while True:
+            try:
+                msg_type, msg_content = self.in_queue.get_nowait()
+                self.in_queue.task_done()
 
-            sender_id = msg_content.get(MSGCONTENT.ID, None)
-            # print("%s: received %s from %d to %d" % (self.name, msg_type.name, sender_id, msg_content[MSGCONTENT.RECIPIENT_ID]))
-            if sender_id is not None:
-                self.process_msg(msg_type, sender_id, msg_content)
+                sender_id = msg_content.get(MSGCONTENT.ID, None)
+                # print("%s: received %s from %d to %d" % (self.name, msg_type.name, sender_id, msg_content[MSGCONTENT.RECIPIENT_ID]))
+                if sender_id is not None:
+                    self.process_msg(msg_type, sender_id, msg_content)
 
-            if msg_type == MESSAGES.TERMINATE:
-                self.running = False
+                if msg_type == MESSAGES.TERMINATE:
+                    self.running = False
 
-            elif msg_type == MESSAGES.PING:
-                self.send_msg(MESSAGES.PONG, sender_id)
+                elif msg_type == MESSAGES.PING:
+                    self.send_msg(MESSAGES.PONG, sender_id)
+            except queue.Empty:
+                break
 
     def log(self, msg):
         """Print a log message to stdout, along with the module's ID"""
         print("%s(%d): %s" % (self.name, self.module_id, msg))
+        pass
     
     def assert_msg_content(self, msg_type, msg_content, *expected_content):
         found_all_expected_content = True

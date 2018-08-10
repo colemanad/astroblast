@@ -13,7 +13,7 @@ from threading import Thread
 
 import time
 from queue import Queue
-from random import randrange
+import random
 
 import pygame
 
@@ -27,16 +27,16 @@ class GameServer(GameModule, Thread):
     def __init__(self, in_queue, dispatch):
         Thread.__init__(self)
         self.dispatch = dispatch
+        self.global_msg_queue = dispatch.global_msg_queue
         GameModule.__init__(self, in_queue, dispatch.in_queue)
         self.name = "Server"
         self.module_id = int(GAME.LOCAL_SERVER_ID.value)
 
-        self.ms_per_frame = 1.0 / (GAME.FPS / 2.0) * 1000.0
+        self.ms_per_frame = 1.0 / (GAME.FPS / 1.0) * 1000.0
         self.last_ticks = 0
         self.ticks_since_last_update = 0
         self.test_auto_spawn_ticks = 0
 
-        self.clients = set()
         self.entities = {}
         self.unused_entities = []
 
@@ -47,14 +47,17 @@ class GameServer(GameModule, Thread):
             self.check_msgs()
             self.update()
     
+    def send_global_msg(self, msg_type, *content):
+        msg_content = self.prepare_msg(*content)
+        self.global_msg_queue.put((msg_type, msg_content))
     
     def process_msg(self, msg_type, sender_id, msg_content):
         """Process an incoming message"""
         self.log('received %s' % msg_type.name)
         if msg_type == MESSAGES.REQCONNECT:
-            if sender_id not in self.clients:
+            if sender_id not in self.dispatch.clients:
                 self.log('Connection accepted for client %d' % sender_id)
-                self.clients.add(sender_id)
+                self.dispatch.clients.add(sender_id)
                 # TODO: create game state object and associate it with new ID?
                 self.send_msg(MESSAGES.CONNECT_ACCEPT, sender_id, (MSGCONTENT.SET_ID, sender_id))
             else:
@@ -68,7 +71,7 @@ class GameServer(GameModule, Thread):
 
         elif msg_type == MESSAGES.SIGNAL_DISCONNECT:
             self.log("Received disconnect signal from client %d" % sender_id)
-            self.clients.discard(sender_id)
+            self.dispatch.clients.discard(sender_id)
 
     def update(self):
         """Update internal game state"""
@@ -88,11 +91,11 @@ class GameServer(GameModule, Thread):
                 self.test_auto_spawn_ticks = 0
                 # destroy a test entity if 20 or more exist
                 if len(self.entities) >= 20:
-                    entity_id = list(self.entities.keys())[randrange(len(self.entities))]
+                    entity_id = random.choice(list(self.entities))
                     self.destroy_entity(entity_id)
                 
                 # spawn a test entity in a random spot
-                pos = (randrange(800), randrange(600))
+                pos = (random.randrange(800), random.randrange(600))
                 self.create_entity(GAME.ENTITY_TEST, pos)
 
             # Update entities
@@ -102,8 +105,8 @@ class GameServer(GameModule, Thread):
             # Update clients
             # Send entity state to clients
             for e in self.entities.values():
-                self.send_msg_all_clients(MESSAGES.UPDATEPOS, (MSGCONTENT.ENTITY_ID, e.entity_id), (MSGCONTENT.X_POS, e.position[0]), (MSGCONTENT.Y_POS, e.position[1]))
-                self.send_msg_all_clients(MESSAGES.UPDATEROT, (MSGCONTENT.ENTITY_ID, e.entity_id), (MSGCONTENT.ROTATION, e.rotation))
+                self.send_global_msg(MESSAGES.UPDATEPOS, (MSGCONTENT.ENTITY_ID, e.entity_id), (MSGCONTENT.X_POS, e.position[0]), (MSGCONTENT.Y_POS, e.position[1]))
+                self.send_global_msg(MESSAGES.UPDATEROT, (MSGCONTENT.ENTITY_ID, e.entity_id), (MSGCONTENT.ROTATION, e.rotation))
 
             # Reset ticks counter
             self.last_ticks = current_ticks
@@ -116,13 +119,10 @@ class GameServer(GameModule, Thread):
 
         super().update()
 
-    def send_msg_all_clients(self, msg_type, *msg_content):
-        for client_id in self.clients:
-            self.send_msg(msg_type, client_id, *msg_content)
-
     def create_entity(self, entity_type, pos=(0, 0), rot=0, bounds=pygame.Rect(-0.5, -0.5, 1, 1)):
         try:
             e = self.unused_entities.pop()
+            self.log('Reusing entity')
             e.initialize(pos, rot, bounds, self.dispatch.get_id(), entity_type)
         except IndexError:
             self.log('No unused entities free, creating a new one')
@@ -134,12 +134,12 @@ class GameServer(GameModule, Thread):
         e.visible = True
         e.active = True
         self.entities[e.entity_id] = e
-        self.send_msg_all_clients(MESSAGES.CREATE_ENTITY, (MSGCONTENT.ENTITY_ID, e.entity_id), (MSGCONTENT.ENTITY_TYPE, e.entity_type), (MSGCONTENT.X_POS, e.position[0]), (MSGCONTENT.Y_POS, e.position[1]), (MSGCONTENT.ROTATION, e.rotation))
+        self.send_global_msg(MESSAGES.CREATE_ENTITY, (MSGCONTENT.ENTITY_ID, e.entity_id), (MSGCONTENT.ENTITY_TYPE, e.entity_type), (MSGCONTENT.X_POS, e.position[0]), (MSGCONTENT.Y_POS, e.position[1]), (MSGCONTENT.ROTATION, e.rotation))
         self.log('Spawned entity %d of type %s' % (e.entity_id, e.entity_type.name))
     
     def destroy_entity(self, entity_id):
         e = self.entities.pop(entity_id, None)
         if e is not None:
-            self.send_msg_all_clients(MESSAGES.DESTROY_ENTITY, (MSGCONTENT.ENTITY_ID, e.entity_id))
+            self.send_global_msg(MESSAGES.DESTROY_ENTITY, (MSGCONTENT.ENTITY_ID, e.entity_id))
             self.dispatch.release_id(e.entity_id)
             self.unused_entities.append(e)

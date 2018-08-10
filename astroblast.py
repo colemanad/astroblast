@@ -11,6 +11,8 @@
 
 from queue import Queue
 
+import pygame
+
 from dispatcher import Dispatcher
 from client import GameClient
 from server import GameServer

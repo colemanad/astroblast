@@ -9,15 +9,14 @@
 #   The assets have been modified.
 #   https://opengameart.org/content/rocks-ships-stars-gold-and-more
 
-import pygame
-
 from constants import GAME
+from helperfuncs import distance
 
 class Entity():
-    def __init__(self, pos=(0, 0), rot=0, vel=(0, 0), angular_vel=0, radius=0, entity_id=0, entity_type=GAME.ENTITY_NONE):
+    def __init__(self, pos=[0, 0], rot=0, vel=(0, 0), angular_vel=0, radius=0, entity_id=0, entity_type=GAME.ENTITY_NONE):
         self.initialize(pos, rot, vel, angular_vel, radius, entity_id, entity_type)
 
-    def initialize(self, pos=(0,0), rot=0, vel=(0, 0), angular_vel=0, radius=0, entity_id=0, entity_type=GAME.ENTITY_NONE):
+    def initialize(self, pos=[0, 0], rot=0, vel=(0, 0), angular_vel=0, radius=0, entity_id=0, entity_type=GAME.ENTITY_NONE):
         self.position = pos
         self.rotation = rot
         self.radius = radius
@@ -35,3 +34,9 @@ class Entity():
     def update(self):
         for c in self.components:
             c.update(self)
+    
+    def collide(self, other):
+        if distance(self.position, other.position) <= self.radius + other.radius:
+            return True
+        else:
+            return False

@@ -126,6 +126,12 @@ class GameClient(GameModule):
                     self.sprites.add(e)
                     self.log('Added sprite for entity %d of type %s' % (e.entity_id, e.entity_type.name))
 
+                elif entity_type == GAME.ENTITY_BULLET:
+                    e = EntitySprite(self.images['bullet_g'], pos, rot, entity_id, entity_type)
+                    self.entities[e.entity_id] = e
+                    self.sprites.add(e)
+                    self.log('Added sprite for entity %d of type %s' % (e.entity_id, e.entity_type.name))
+
         elif msg_type == MESSAGES.DESTROY_ENTITY:
             if self.assert_msg_content(msg_type, msg_content, MSGCONTENT.ENTITY_ID):
                 entity_id = msg_content[MSGCONTENT.ENTITY_ID]

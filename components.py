@@ -38,3 +38,9 @@ class AsteroidComponent():
                 parent.rotation -= 360
             elif parent.rotation < 0:
                 parent.rotation += 360
+
+class BulletComponent():
+    def update(self, parent):
+        # Update position
+        parent.position[0] = (parent.position[0] + parent.velocity[0]) % GAME.WIDTH
+        parent.position[1] = (parent.position[1] + parent.velocity[1]) % GAME.WIDTH

@@ -102,7 +102,7 @@ class GameServer(GameModule, Thread):
                 # spawn a bullet with a random trajectory
                 pos = [random.randrange(800), random.randrange(600)]
                 angle = math.radians(random.randrange(360))
-                vel = [math.cos(angle), -math.sin(angle)] * 3
+                vel = [math.cos(angle)*3, -math.sin(angle)*3]
                 self.create_entity(GAME.ENTITY_BULLET, pos, 0, vel, 0)
 
             # Asteroid-bullet collisions

@@ -65,12 +65,12 @@ class GameClient(GameModule):
                        'asteroid_small':load_image_all_rotations('asteroid_small.png'),
                        'bullet_g':load_image_all_rotations('bullet_g.png')}
 
-        # Create a sprite to draw on the screen
         self.entities = {}
+        self.unused_entities = []
+        # Generate some unused entities
+        for x in range(100):
+            self.unused_entities.append(EntitySprite(None))
         self.sprites = pygame.sprite.Group()
-        # ship = EntitySprite('ship.png', (400, 300))
-        # self.ship_sprite = ship
-        # self.sprites = pygame.sprite.Group(self.ship_sprite)
 
     def quit(self):
         """Sends quit message and halts client"""
@@ -102,32 +102,43 @@ class GameClient(GameModule):
                 pos = (msg_content[MSGCONTENT.X_POS], msg_content[MSGCONTENT.Y_POS])
                 rot = msg_content[MSGCONTENT.ROTATION]
 
+                # Try to get an unused entity, or create one if there are none
+                try:
+                    e = self.unused_entities.pop()
+                except IndexError:
+                    e = EntitySprite(None)
+
                 if entity_type == GAME.ENTITY_TEST:
-                    e = EntitySprite(self.images['ship'], pos, rot, entity_id, entity_type)
+                    # e = EntitySprite(self.images['ship'], pos, rot, entity_id, entity_type)
+                    e.initialize(self.images['ship'], pos, rot, entity_id, entity_type)
                     self.entities[e.entity_id] = e
                     self.sprites.add(e)
                     self.log('Added sprite for entity %d of type %s' % (e.entity_id, e.entity_type.name))
 
                 elif entity_type == GAME.ENTITY_ASTEROID_BIG:
-                    e = EntitySprite(self.images['asteroid_big'], pos, rot, entity_id, entity_type)
+                    # e = EntitySprite(self.images['asteroid_big'], pos, rot, entity_id, entity_type)
+                    e.initialize(self.images['asteroid_big'], pos, rot, entity_id, entity_type)
                     self.entities[e.entity_id] = e
                     self.sprites.add(e)
                     self.log('Added sprite for entity %d of type %s' % (e.entity_id, e.entity_type.name))
 
                 elif entity_type == GAME.ENTITY_ASTEROID_MED:
-                    e = EntitySprite(self.images['asteroid_med'], pos, rot, entity_id, entity_type)
+                    # e = EntitySprite(self.images['asteroid_med'], pos, rot, entity_id, entity_type)
+                    e.initialize(self.images['asteroid_med'], pos, rot, entity_id, entity_type)
                     self.entities[e.entity_id] = e
                     self.sprites.add(e)
                     self.log('Added sprite for entity %d of type %s' % (e.entity_id, e.entity_type.name))
 
                 elif entity_type == GAME.ENTITY_ASTEROID_SMALL:
-                    e = EntitySprite(self.images['asteroid_small'], pos, rot, entity_id, entity_type)
+                    # e = EntitySprite(self.images['asteroid_small'], pos, rot, entity_id, entity_type)
+                    e.initialize(self.images['asteroid_small'], pos, rot, entity_id, entity_type)
                     self.entities[e.entity_id] = e
                     self.sprites.add(e)
                     self.log('Added sprite for entity %d of type %s' % (e.entity_id, e.entity_type.name))
 
                 elif entity_type == GAME.ENTITY_BULLET:
-                    e = EntitySprite(self.images['bullet_g'], pos, rot, entity_id, entity_type)
+                    # e = EntitySprite(self.images['bullet_g'], pos, rot, entity_id, entity_type)
+                    e.initialize(self.images['bullet_g'], pos, rot, entity_id, entity_type)
                     self.entities[e.entity_id] = e
                     self.sprites.add(e)
                     self.log('Added sprite for entity %d of type %s' % (e.entity_id, e.entity_type.name))
@@ -138,6 +149,7 @@ class GameClient(GameModule):
                 e = self.entities.pop(entity_id)
                 if e is not None:
                     self.sprites.remove(e)
+                    self.unused_entities.append(e)
                 else:
                     self.log('Received message to destroy sprite for entity %d, but sprite did not exist' % entity_id)
 

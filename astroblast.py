@@ -42,12 +42,21 @@ def main():
         # Start the server on a separate thread
         server.start()
 
+        ms_per_frame = 1000.0 / 60.0
+        last_ticks = 0
+        ticks_since_last_update = 17
+
         running = True
         while running:
-            # Check & process incoming messages to the client
-            client.check_msgs()
-            # Update client-side game state / Process user input
-            client.update()
+            current_ticks = pygame.time.get_ticks()
+            diff = current_ticks - last_ticks
+            ticks_since_last_update += diff
+
+            if ticks_since_last_update >= ms_per_frame:
+                # Check & process incoming messages to the client
+                client.check_msgs()
+                # Update client-side game state / Process user input
+                client.update()
 
             # Shut down if the client quits
             if not client.running:

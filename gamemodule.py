@@ -101,8 +101,8 @@ class GameModule():
 
     def log(self, msg):
         """Print a log message to stdout, along with the module's ID"""
-        print("%s(%d): %s" % (self.name, self.module_id, msg))
-        # pass
+        # print("%s(%d): %s" % (self.name, self.module_id, msg))
+        pass
     
     def assert_msg_content(self, msg_type, msg_content, *expected_content):
         found_all_expected_content = True

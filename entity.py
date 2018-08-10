@@ -14,21 +14,15 @@ import pygame
 from constants import GAME
 
 class Entity():
-    def __init__(self, pos=(0, 0), rot=0, initial_velocity=(0, 0), bounds=pygame.Rect(-0.5, -0.5, 1, 1), entity_id=0, entity_type=GAME.ENTITY_NONE):
-        self.position = pos
-        self.rotation = rot
-        self.velocity = initial_velocity
-        self.bounds = bounds
-        self.visible = False
-        self.active = False
-        self.entity_id = entity_id
-        self.entity_type = entity_type
-        self.components = []
+    def __init__(self, pos=(0, 0), rot=0, vel=(0, 0), angular_vel=0, radius=0, entity_id=0, entity_type=GAME.ENTITY_NONE):
+        self.initialize(pos, rot, vel, angular_vel, radius, entity_id, entity_type)
 
-    def initialize(self, pos=(0,0), rot=0, initial_velocity=(0, 0), bounds=pygame.Rect(-0.5, -0.5, 1, 1), entity_id=0, entity_type=GAME.ENTITY_NONE):
+    def initialize(self, pos=(0,0), rot=0, vel=(0, 0), angular_vel=0, radius=0, entity_id=0, entity_type=GAME.ENTITY_NONE):
         self.position = pos
         self.rotation = rot
-        self.bounds = bounds
+        self.radius = radius
+        self.velocity = vel
+        self.angular_velocity = angular_vel
         self.visible = False
         self.active = False
         self.entity_id = entity_id
@@ -41,4 +35,3 @@ class Entity():
     def update(self):
         for c in self.components:
             c.update(self)
-

@@ -39,8 +39,11 @@ class GAME(Values):
     ENTITY_NONE = ValueConstant('100')
     ENTITY_TEST = ValueConstant('101')
     ENTITY_PLAYERSHIP = ValueConstant('102')
-    ENTITY_ASTEROID = ValueConstant('103')
-    ENTITY_BULLET = ValueConstant('104')
+    ENTITY_BULLET = ValueConstant('103')
+    ENTITY_ASTEROID_BIG = ValueConstant('104')
+    ENTITY_ASTEROID_MED = ValueConstant('105')
+    ENTITY_ASTEROID_SMALL = ValueConstant('106')
+
 
 class MESSAGES(Values):
     """Message type constants"""

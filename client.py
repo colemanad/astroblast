@@ -59,7 +59,11 @@ class GameClient(GameModule):
         pygame.display.set_caption('AstroBlast!')
         self.clock = pygame.time.Clock()
 
-        self.images = {'ship':load_image_all_rotations('ship.png')}
+        self.images = {'ship':load_image_all_rotations('ship.png'),
+                       'asteroid_big':load_image_all_rotations('asteroid_big.png'),
+                       'asteroid_med':load_image_all_rotations('asteroid_med.png'),
+                       'asteroid_small':load_image_all_rotations('asteroid_small.png'),
+                       'bullet_g':load_image_all_rotations('bullet_g.png')}
 
         # Create a sprite to draw on the screen
         self.entities = {}
@@ -99,8 +103,25 @@ class GameClient(GameModule):
                 rot = msg_content[MSGCONTENT.ROTATION]
 
                 if entity_type == GAME.ENTITY_TEST:
-                    # e = EntitySprite('ship.png', pos, rot, entity_id, entity_type)
                     e = EntitySprite(self.images['ship'], pos, rot, entity_id, entity_type)
+                    self.entities[e.entity_id] = e
+                    self.sprites.add(e)
+                    self.log('Added sprite for entity %d of type %s' % (e.entity_id, e.entity_type.name))
+
+                elif entity_type == GAME.ENTITY_ASTEROID_BIG:
+                    e = EntitySprite(self.images['asteroid_big'], pos, rot, entity_id, entity_type)
+                    self.entities[e.entity_id] = e
+                    self.sprites.add(e)
+                    self.log('Added sprite for entity %d of type %s' % (e.entity_id, e.entity_type.name))
+
+                elif entity_type == GAME.ENTITY_ASTEROID_MED:
+                    e = EntitySprite(self.images['asteroid_med'], pos, rot, entity_id, entity_type)
+                    self.entities[e.entity_id] = e
+                    self.sprites.add(e)
+                    self.log('Added sprite for entity %d of type %s' % (e.entity_id, e.entity_type.name))
+
+                elif entity_type == GAME.ENTITY_ASTEROID_SMALL:
+                    e = EntitySprite(self.images['asteroid_small'], pos, rot, entity_id, entity_type)
                     self.entities[e.entity_id] = e
                     self.sprites.add(e)
                     self.log('Added sprite for entity %d of type %s' % (e.entity_id, e.entity_type.name))

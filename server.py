@@ -20,7 +20,7 @@ import pygame
 from gamemodule import GameModule
 from constants import MESSAGES, MSGCONTENT, GAME
 from entity import Entity
-from testcomponent import TestComponent
+import components
 
 class GameServer(GameModule, Thread):
     """Implements the server module which manages the internal game state."""
@@ -36,6 +36,8 @@ class GameServer(GameModule, Thread):
         self.last_ticks = 0
         self.ticks_since_last_update = 0
         self.test_auto_spawn_ticks = 0
+
+        self.spawned = False
 
         self.entities = {}
         self.unused_entities = []
@@ -80,26 +82,21 @@ class GameServer(GameModule, Thread):
         current_ticks = pygame.time.get_ticks()
         diff = current_ticks - self.last_ticks
         self.ticks_since_last_update += diff
-        self.test_auto_spawn_ticks += diff
 
         # Run update logic if enough time has elapsed
         if self.ticks_since_last_update >= self.ms_per_frame:
             self.ticks_since_last_update -= self.ms_per_frame
-            # self.log('update %d' % current_ticks)
 
-            if self.test_auto_spawn_ticks >= 1000:
-                self.test_auto_spawn_ticks = 0
-                # destroy a test entity if 20 or more exist
-                if len(self.entities) >= 20:
-                    entity_id = random.choice(list(self.entities))
-                    self.destroy_entity(entity_id)
-                
-                # spawn a test entity in a random spot
-                pos = [random.randrange(800), random.randrange(600)]
-                rot = random.randrange(360)
-                # vel = [random.randrange(-3,4), random.randrange(-3,4)]
-                vel = [random.uniform(-1.5, 1.5), random.uniform(-1.5, 1.5)]
-                self.create_entity(GAME.ENTITY_TEST, pos, rot, vel)
+            if not self.spawned:
+                for x in range(10):
+                    # spawn a test entity in a random spot
+                    pos = [random.randrange(800), random.randrange(600)]
+                    rot = random.randrange(360)
+                    vel = [random.uniform(-1.5, 1.5), random.uniform(-1.5, 1.5)]
+                    avel = random.uniform(-3.0, 3.0)
+                    kind = random.randrange(104,107)
+                    self.create_entity(GAME.lookupByValue(str(kind)), pos, rot, vel, avel)
+                    self.spawned = True
 
             # Update entities
             for e in self.entities.values():
@@ -122,17 +119,21 @@ class GameServer(GameModule, Thread):
 
         super().update()
 
-    def create_entity(self, entity_type, pos=[0, 0], rot=0, vel=[0, 0], bounds=pygame.Rect(-0.5, -0.5, 1, 1)):
+    def create_entity(self, entity_type, pos=[0, 0], rot=0, vel=[0, 0], avel=0, bounds=pygame.Rect(-0.5, -0.5, 1, 1)):
         try:
             e = self.unused_entities.pop()
             self.log('Reusing entity')
-            e.initialize(pos, rot, vel, bounds, self.dispatch.get_id(), entity_type)
+            e.initialize(pos, rot, vel, avel, bounds, self.dispatch.get_id(), entity_type)
         except IndexError:
             self.log('No unused entities free, creating a new one')
-            e = Entity(pos, rot, vel, bounds, self.dispatch.get_id(), entity_type)
+            e = Entity(pos, rot, vel, avel, bounds, self.dispatch.get_id(), entity_type)
 
         if entity_type == GAME.ENTITY_TEST:
-            e.add_component(TestComponent())
+            e.add_component(components.TestComponent())
+        elif (entity_type == GAME.ENTITY_ASTEROID_BIG or
+              entity_type == GAME.ENTITY_ASTEROID_MED or
+              entity_type == GAME.ENTITY_ASTEROID_SMALL):
+            e.add_component(components.AsteroidComponent())
 
         e.visible = True
         e.active = True

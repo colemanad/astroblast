@@ -77,7 +77,8 @@ class GameServer(GameModule, Thread):
                 self.send_msg(MESSAGES.CREATE_ENTITY, sender_id, (MSGCONTENT.ENTITY_ID, e.entity_id), (MSGCONTENT.ENTITY_TYPE, e.entity_type), (MSGCONTENT.X_POS, e.position[0]), (MSGCONTENT.Y_POS, e.position[1]), (MSGCONTENT.ROTATION, e.rotation))
             # Create player entity at random position
             pos = [random.randrange(100, 700), random.randrange(100, 500)]
-            pship = self.create_entity(GAME.ENTITY_PLAYERSHIP, pos)
+            print(sender_id)
+            pship = self.create_entity(GAME.ENTITY_PLAYERSHIP, pos, 0, [0, 0], 0, 0, sender_id)
             self.player_entities[sender_id] = pship
 
         elif msg_type == MESSAGES.SIGNAL_DISCONNECT:
@@ -95,6 +96,12 @@ class GameServer(GameModule, Thread):
         
         elif msg_type == MESSAGES.INPUT_RIGHT_UP:
             self.player_entities.get(sender_id).turn_direction += 1
+
+        elif msg_type == MESSAGES.INPUT_THRUST_DOWN:
+            self.player_entities.get(sender_id).thrust = True
+
+        elif msg_type == MESSAGES.INPUT_THRUST_UP:
+            self.player_entities.get(sender_id).thrust = False
 
     def update(self):
         """Update internal game state"""
@@ -179,7 +186,7 @@ class GameServer(GameModule, Thread):
 
 
 
-    def create_entity(self, entity_type, pos=[0, 0], rot=0, vel=[0, 0], avel=0, radius=0):
+    def create_entity(self, entity_type, pos=[0, 0], rot=0, vel=[0, 0], avel=0, radius=0, player_id=0):
         try:
             e = self.unused_entities.pop()
             self.log('Reusing entity')
@@ -187,6 +194,8 @@ class GameServer(GameModule, Thread):
         except IndexError:
             self.log('No unused entities free, creating a new one')
             e = Entity(pos, rot, vel, avel, radius, self.dispatch.get_id(), entity_type)
+
+        msg_content = [(MSGCONTENT.ENTITY_ID, e.entity_id), (MSGCONTENT.ENTITY_TYPE, e.entity_type), (MSGCONTENT.X_POS, e.position[0]), (MSGCONTENT.Y_POS, e.position[1]), (MSGCONTENT.ROTATION, e.rotation)]
 
         if entity_type == GAME.ENTITY_TEST:
             e.add_component(components.TestComponent())
@@ -210,11 +219,13 @@ class GameServer(GameModule, Thread):
         elif entity_type == GAME.ENTITY_PLAYERSHIP:
             e.add_component(components.PlayerComponent())
             e.radius = 30
+            msg_content.append((MSGCONTENT.PLAYER_ID, player_id))
+
 
         e.visible = True
         e.active = True
         self.entities[e.entity_id] = e
-        self.send_global_msg(MESSAGES.CREATE_ENTITY, (MSGCONTENT.ENTITY_ID, e.entity_id), (MSGCONTENT.ENTITY_TYPE, e.entity_type), (MSGCONTENT.X_POS, e.position[0]), (MSGCONTENT.Y_POS, e.position[1]), (MSGCONTENT.ROTATION, e.rotation))
+        self.send_global_msg(MESSAGES.CREATE_ENTITY, *msg_content)
         self.log('Spawned entity %d of type %s' % (e.entity_id, e.entity_type.name))
         return e
     

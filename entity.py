@@ -9,8 +9,10 @@
 #   The assets have been modified.
 #   https://opengameart.org/content/rocks-ships-stars-gold-and-more
 
+import math
+
 from constants import GAME
-from helperfuncs import distance
+from helperfuncs import distance, angle_vector
 
 class Entity():
     def __init__(self, pos=[0, 0], rot=0, vel=(0, 0), angular_vel=0, radius=0, entity_id=0, entity_type=GAME.ENTITY_NONE):
@@ -30,6 +32,8 @@ class Entity():
         self.should_destroy = False
 
         self.turn_direction = 0
+        self.thrust = False
+        self.forward = angle_vector(math.radians(self.rotation))
     
     def add_component(self, component):
         self.components.append(component)

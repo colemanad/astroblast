@@ -77,6 +77,8 @@ class Dispatcher(Thread, GameModule):
         while True:
             try:
                 msg_type, msg_content = self.global_msg_queue.get_nowait()
+                # if msg_type == MESSAGES.CREATE_ENTITY and msg_content[MSGCONTENT.ENTITY_TYPE] == GAME.ENTITY_PLAYERSHIP:
+                    # print(msg_content[MSGCONTENT.PLAYER_ID])
                 self.global_msg_queue.task_done()
                 for an_id in self.clients:
                     new_content = msg_content.copy()
@@ -85,33 +87,6 @@ class Dispatcher(Thread, GameModule):
                     self.in_queue.put(msg, True)
             except queue.Empty:
                 break
-
-    # def distribute_global_msgs(self):
-    #     put_back = []
-    #     while True:
-    #         try:
-    #             msg_type, msg_content = self.in_queue.get_nowait()
-    #             self.in_queue.task_done()
-    #             recipient_id = msg_content[MSGCONTENT.RECIPIENT_ID]
-    #             if recipient_id == int(GAME.ALL_CLIENTS_ID.value):
-    #                 # Remove global recipient ID from message
-    #                 # Send message to all clients
-    #                 for an_id in client_ids:
-    #                     new_content = copy.deepcopy(msg_content)
-    #                     # new_content = msg_content.copy()
-    #                     new_content[MSGCONTENT.RECIPIENT_ID] = an_id
-    #                     msg = (msg_type, msg_content)
-    #                     self.in_queue.put(msg, True)
-    #             else:
-    #                 # Put the message back on the in_queue
-    #                 msg = (msg_type, msg_content)
-    #                 self.log('%s to %d' % (msg_type.name, msg_content[MSGCONTENT.RECIPIENT_ID]))
-    #                 put_back.append(msg)
-    #         except queue.Empty:
-    #             break
-        
-    #     for msg in put_back:
-    #         self.in_queue.put(msg, True)
 
     def process_msg(self, msg_type, sender_id, msg_content):
         should_send = True
@@ -143,6 +118,7 @@ class Dispatcher(Thread, GameModule):
         if should_send:
             if recipient_id is not None:
                 # self.log('passing %s from %d to %d' % (msg_type.name, sender_id, recipient_id))
+                # print('passing %s from %d to %d' % (msg_type.name, sender_id, recipient_id))
                 self.send_msg(msg_type, recipient_id, *[(k, v) for k, v in msg_content.items()])
             else:
                 self.log('Received %s message but recipient ID is missing' % msg_type.name)

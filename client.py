@@ -57,8 +57,8 @@ class GameClient(GameModule):
         pygame.display.set_caption('AstroBlast!')
         self.clock = pygame.time.Clock()
 
-        self.frames = {'ship':[load_image_all_rotations('ship.png')],
-                       'ship_thrust':[load_image_all_rotations('ship_thrust.png')],
+        self.frames = {'ship':[load_image_all_rotations('ship.png'),
+                               load_image_all_rotations('ship_thrust.png')],
                        'asteroid_big':[load_image_all_rotations('asteroid_big.png')],
                        'asteroid_med':[load_image_all_rotations('asteroid_med.png')],
                        'asteroid_small':[load_image_all_rotations('asteroid_small.png')],
@@ -234,6 +234,7 @@ class GameClient(GameModule):
                 elif event.key == pygame.K_RIGHT:
                     self.send_msg(MESSAGES.INPUT_RIGHT_DOWN, self.local_server_id)
                 elif event.key == pygame.K_UP:
+                    self.entities[self.player_entity_id].current_frame = 1
                     self.send_msg(MESSAGES.INPUT_THRUST_DOWN, self.local_server_id)
                 elif event.key == pygame.K_SPACE:
                     self.send_msg(MESSAGES.INPUT_SHOOT_DOWN, self.local_server_id)
@@ -244,6 +245,7 @@ class GameClient(GameModule):
                 elif event.key == pygame.K_RIGHT:
                     self.send_msg(MESSAGES.INPUT_RIGHT_UP, self.local_server_id)
                 elif event.key == pygame.K_UP:
+                    self.entities[self.player_entity_id].current_frame = 0
                     self.send_msg(MESSAGES.INPUT_THRUST_UP, self.local_server_id)
                 elif event.key == pygame.K_SPACE:
                     self.send_msg(MESSAGES.INPUT_SHOOT_UP, self.local_server_id)

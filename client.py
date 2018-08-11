@@ -74,6 +74,7 @@ class GameClient(GameModule):
         self.sprites = pygame.sprite.Group()
 
         self.player_entity_id = -1
+        self.player_alive = False
 
     def quit(self):
         """Sends quit message and halts client"""
@@ -126,6 +127,7 @@ class GameClient(GameModule):
                     pid = msg_content.get(MSGCONTENT.PLAYER_ID, None)
                     if pid is not None and pid == self.module_id:
                         self.player_entity_id = e.entity_id
+                        self.player_alive = True
                     self.log('Added sprite for entity %d of type %s' % (e.entity_id, e.entity_type.name))
 
                 elif entity_type == GAME.ENTITY_ASTEROID_BIG:
@@ -170,6 +172,8 @@ class GameClient(GameModule):
                 if e is not None:
                     self.sprites.remove(e)
                     self.unused_entities.append(e)
+                    if e.entity_id == self.player_entity_id:
+                        self.player_alive = False
                 else:
                     self.log('Received message to destroy sprite for entity %d, but sprite did not exist' % entity_id)
 
@@ -236,7 +240,9 @@ class GameClient(GameModule):
                 elif event.key == pygame.K_RIGHT:
                     self.send_msg(MESSAGES.INPUT_RIGHT_DOWN, self.local_server_id)
                 elif event.key == pygame.K_UP:
-                    self.entities[self.player_entity_id].current_frame = 1
+                    pship = self.entities.get(self.player_entity_id)
+                    if pship is not None:
+                        pship.current_frame = 1
                     self.send_msg(MESSAGES.INPUT_THRUST_DOWN, self.local_server_id)
                 elif event.key == pygame.K_SPACE:
                     self.send_msg(MESSAGES.INPUT_SHOOT_DOWN, self.local_server_id)
@@ -247,7 +253,9 @@ class GameClient(GameModule):
                 elif event.key == pygame.K_RIGHT:
                     self.send_msg(MESSAGES.INPUT_RIGHT_UP, self.local_server_id)
                 elif event.key == pygame.K_UP:
-                    self.entities[self.player_entity_id].current_frame = 0
+                    pship = self.entities.get(self.player_entity_id)
+                    if pship is not None:
+                        pship.current_frame = 0
                     self.send_msg(MESSAGES.INPUT_THRUST_UP, self.local_server_id)
                 elif event.key == pygame.K_SPACE:
                     self.send_msg(MESSAGES.INPUT_SHOOT_UP, self.local_server_id)

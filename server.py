@@ -88,37 +88,49 @@ class GameServer(GameModule, Thread):
                 pship = self.create_entity(GAME.ENTITY_PLAYERSHIP, pos, 0, [0, 0], 0, 0, sender_id)
                 # Temporarily boost radius by 3x to make extra room around newly-spawned player
                 pship.radius *= 3
-                while (self.collide_group_and_entity(self.asteroids, pship) or
-                       self.collide_group_and_entity(self.bullets, pship)):
+                while (self.collide_group_and_entity(self.asteroids, pship, False) or
+                       self.collide_group_and_entity(self.bullets, pship, False)):
                         # Choose a different random spot
                         pship.position = self.random_position_on_screen(100)
                 pship.radius /= 3
                 self.player_entities[sender_id] = pship
         
         elif msg_type == MESSAGES.INPUT_LEFT_DOWN:
-            self.player_entities.get(sender_id).turn_direction += 1
+            pship = self.player_entities.get(sender_id)
+            if pship is not None:
+                pship.turn_direction += 1
         
         elif msg_type == MESSAGES.INPUT_LEFT_UP:
-            self.player_entities.get(sender_id).turn_direction -= 1
+            pship = self.player_entities.get(sender_id)
+            if pship is not None:
+                pship.turn_direction -= 1
 
         elif msg_type == MESSAGES.INPUT_RIGHT_DOWN:
-            self.player_entities.get(sender_id).turn_direction -= 1
+            pship = self.player_entities.get(sender_id)
+            if pship is not None:
+                pship.turn_direction -= 1
         
         elif msg_type == MESSAGES.INPUT_RIGHT_UP:
-            self.player_entities.get(sender_id).turn_direction += 1
+            pship = self.player_entities.get(sender_id)
+            if pship is not None:
+                pship.turn_direction += 1
 
         elif msg_type == MESSAGES.INPUT_THRUST_DOWN:
-            self.player_entities.get(sender_id).thrust = True
+            pship = self.player_entities.get(sender_id)
+            if pship is not None:
+                pship.thrust = True
 
         elif msg_type == MESSAGES.INPUT_THRUST_UP:
-            self.player_entities.get(sender_id).thrust = False
+            pship = self.player_entities.get(sender_id)
+            if pship is not None:
+                pship.thrust = False
 
         elif msg_type == MESSAGES.INPUT_SHOOT_DOWN:
             pship = self.player_entities.get(sender_id)
             if pship is not None:
                 pos = [pship.position[0] + 30*pship.forward[0], pship.position[1] + 30*pship.forward[1]]
                 vel = [400*pship.forward[0], 400*pship.forward[1]]
-                self.create_entity(GAME.ENTITY_BULLET, pos, 0, vel)
+                bullet = self.create_entity(GAME.ENTITY_BULLET, pos, 0, vel, 0, 0, pship.player_id)
 
     def update(self):
         """Update internal game state"""
@@ -142,8 +154,8 @@ class GameServer(GameModule, Thread):
                     asteroid = self.spawn_asteroid(pos, GAME.ENTITY_ASTEROID_BIG)
                     # Temporarily boost radius of asteroid by 2x to avoid bad spawning locations
                     asteroid.radius *= 2
-                    while (self.collide_group_and_entity(list(self.player_entities.values()), asteroid) or
-                           self.collide_group_and_entity(self.bullets, asteroid)):
+                    while (self.collide_group_and_entity(list(self.player_entities.values()), asteroid, False) or
+                           self.collide_group_and_entity(self.bullets, asteroid, False)):
                         # Choose a different random spot
                         asteroid.position = self.random_position_on_screen()
                     asteroid.radius /= 2
@@ -151,13 +163,27 @@ class GameServer(GameModule, Thread):
             # Asteroid-bullet collisions
             self.collide_groups(self.asteroids, self.bullets)
 
+            # Player-asteroid and Player-bullet collisions
+            self.collide_groups(self.asteroids, list(self.player_entities.values()))
+            self.collide_groups(list(self.player_entities.values()), self.bullets)
+
             # Update entities
+            to_destroy = []
             for e in list(self.entities.values()):
+                if ((e.entity_type == GAME.ENTITY_ASTEROID_BIG or
+                    e.entity_type == GAME.ENTITY_ASTEROID_MED or
+                    e.entity_type == GAME.ENTITY_ASTEROID_SMALL) and
+                    e not in self.asteroids):
+                    print('not in asteroids')
                 e.update(diff/1000)
                 if e.should_destroy:
-                    self.destroy_entity(e.entity_id)
+                    to_destroy.append(e)
             
+            for e in to_destroy:
+                self.destroy_entity(e.entity_id)
             
+            to_destroy.clear()
+
             # Update clients
             # Send entity state to clients
             for e in self.entities.values():
@@ -188,33 +214,32 @@ class GameServer(GameModule, Thread):
 
     def collide_group_and_entity(self, group, other, destroy=True):
         original_len = len(group)
+        group = group.copy()
 
         for entity in group:
-            if entity.collide(other):
+            if entity is not None and entity.collide(other):
                 group.remove(entity)
                 if destroy:
-                    self.destroy_entity(entity.entity_id)
+                    entity.should_destroy = True
                 break
         return original_len - len(group)
     
     def collide_groups(self, group1, group2, destroy=True):
-        if not destroy:
-            group1 = group1.copy()
-            group2 = group2.copy()
+        group1 = group1.copy()
         count = 0
 
         for entity in group1:
-            if self.collide_group_and_entity(group2, entity) > 0:
+            if self.collide_group_and_entity(group2, entity, destroy) > 0:
                 count += 1
                 group1.remove(entity)
                 if destroy:
-                    self.destroy_entity(entity.entity_id)
+                    entity.should_destroy = True
         
         return count
 
 
 
-    def create_entity(self, entity_type, pos=[0, 0], rot=0, vel=[0, 0], avel=0, radius=0, player_id=0):
+    def create_entity(self, entity_type, pos=[0, 0], rot=0, vel=[0, 0], avel=0, radius=0, player_id=-5):
         try:
             e = self.unused_entities.pop()
             self.log('Reusing entity')
@@ -232,6 +257,7 @@ class GameServer(GameModule, Thread):
               entity_type == GAME.ENTITY_ASTEROID_MED or
               entity_type == GAME.ENTITY_ASTEROID_SMALL):
             if entity_type == GAME.ENTITY_ASTEROID_BIG:
+                # TODO: get rid of these magic numbers
                 e.radius = 58
                 
             elif entity_type == GAME.ENTITY_ASTEROID_MED:
@@ -245,7 +271,7 @@ class GameServer(GameModule, Thread):
         elif entity_type == GAME.ENTITY_BULLET:
             e.add_component(components.BulletComponent())
             e.radius = 5
-            e.lifetime = 5
+            e.lifetime = 3
             self.bullets.append(e)
             
         elif entity_type == GAME.ENTITY_EXPLOSION:
@@ -256,7 +282,7 @@ class GameServer(GameModule, Thread):
             e.radius = 30
             msg_content.append((MSGCONTENT.PLAYER_ID, player_id))
 
-
+        e.player_id = player_id
         e.visible = True
         e.active = True
         self.entities[e.entity_id] = e
@@ -272,19 +298,25 @@ class GameServer(GameModule, Thread):
                     pos = [e.position[0] + random.randrange(5, 20)*random.choice([-1, 1]), e.position[1] + random.randrange(5, 20)*random.choice([-1, 1])]
                     self.spawn_asteroid(pos, GAME.ENTITY_ASTEROID_MED)
                 self.create_entity(GAME.ENTITY_EXPLOSION, e.position.copy())
+                self.asteroids.remove(e)
 
             elif e.entity_type == GAME.ENTITY_ASTEROID_MED:
                 for x in range(random.randrange(3, 5)):
                     pos = [e.position[0] + random.randrange(5, 20)*random.choice([-1, 1]), e.position[1] + random.randrange(5, 20)*random.choice([-1, 1])]
                     self.spawn_asteroid(pos, GAME.ENTITY_ASTEROID_SMALL)
                 self.create_entity(GAME.ENTITY_EXPLOSION, e.position.copy())
+                self.asteroids.remove(e)
 
             elif e.entity_type == GAME.ENTITY_ASTEROID_SMALL:
                 self.create_entity(GAME.ENTITY_EXPLOSION, e.position.copy())
+                self.asteroids.remove(e)
 
             elif e.entity_type == GAME.ENTITY_PLAYERSHIP:
                 self.player_entities[e.player_id] = None
                 self.create_entity(GAME.ENTITY_EXPLOSION, e.position.copy())
+            
+            elif e.entity_type == GAME.ENTITY_BULLET:
+                self.bullets.remove(e)
 
             self.send_global_msg(MESSAGES.DESTROY_ENTITY, (MSGCONTENT.ENTITY_ID, e.entity_id))
             self.dispatch.release_id(e.entity_id)

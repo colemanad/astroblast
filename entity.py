@@ -36,6 +36,7 @@ class Entity():
         self.forward = angle_vector(math.radians(self.rotation))
         self.lifetime = 0
         self.elapsed = 0
+        self.player_id = -1
     
     def add_component(self, component):
         self.components.append(component)
@@ -50,7 +51,9 @@ class Entity():
 
     
     def collide(self, other):
-        if distance(self.position, other.position) <= self.radius + other.radius:
-            return True
-        else:
-            return False
+        if other is not None:
+            if (distance(self.position, other.position) <= self.radius + other.radius and
+                self.player_id != other.player_id):
+                return True
+            else:
+                return False

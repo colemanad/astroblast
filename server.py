@@ -84,8 +84,12 @@ class GameServer(GameModule, Thread):
             # TODO: Start game in single player, wait for other player in multi
             if self.player_entities.get(sender_id) is None:
                 # Create player entity at random position
-                pos = [random.randrange(100, 700), random.randrange(100, 500)]
+                pos = self.random_position_on_screen(100)
                 pship = self.create_entity(GAME.ENTITY_PLAYERSHIP, pos, 0, [0, 0], 0, 0, sender_id)
+                while (self.collide_group_and_entity(self.asteroids, pship) or
+                       self.collide_group_and_entity(self.bullets, pship)):
+                        # Choose a different random spot
+                        pship.position = self.random_position_on_screen(100)
                 self.player_entities[sender_id] = pship
         
         elif msg_type == MESSAGES.INPUT_LEFT_DOWN:
@@ -177,24 +181,29 @@ class GameServer(GameModule, Thread):
         avel = random.uniform(15, 150)*random.choice([-1, 1])
         return self.create_entity(kind, pos, rot, vel, avel)
 
-    def collide_group_and_entity(self, group, other):
+    def collide_group_and_entity(self, group, other, destroy=True):
         original_len = len(group)
 
         for entity in group:
             if entity.collide(other):
                 group.remove(entity)
-                self.destroy_entity(entity.entity_id)
+                if destroy:
+                    self.destroy_entity(entity.entity_id)
                 break
         return original_len - len(group)
     
-    def collide_groups(self, group1, group2):
+    def collide_groups(self, group1, group2, destroy=True):
+        if not destroy:
+            group1 = group1.copy()
+            group2 = group2.copy()
         count = 0
 
         for entity in group1:
             if self.collide_group_and_entity(group2, entity) > 0:
                 count += 1
                 group1.remove(entity)
-                self.destroy_entity(entity.entity_id)
+                if destroy:
+                    self.destroy_entity(entity.entity_id)
         
         return count
 

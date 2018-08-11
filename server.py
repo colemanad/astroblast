@@ -39,6 +39,9 @@ class GameServer(GameModule, Thread):
         self.ticks_since_last_update = 0
         self.test_auto_spawn_ticks = 0
 
+        self.player_death_delay = 1000
+        self.player_death_ticks = {}
+
         self.entities = {}
         self.unused_entities = []
         for x in range(100):
@@ -104,6 +107,7 @@ class GameServer(GameModule, Thread):
             self.set_client_state(sender_id, GAME.STATE_GAME_START)
             self.set_client_lives(sender_id, 3)
             self.set_client_score(sender_id, 0)
+            self.player_death_ticks[sender_id] = 0
             self.bullets[sender_id] = []
             # Tell new client about all existing entities
             for e in self.entities.values():
@@ -246,28 +250,32 @@ class GameServer(GameModule, Thread):
             # Update entities
             to_destroy = []
             for e in list(self.entities.values()):
-                # if ((e.entity_type == GAME.ENTITY_ASTEROID_BIG or
-                #     e.entity_type == GAME.ENTITY_ASTEROID_MED or
-                #     e.entity_type == GAME.ENTITY_ASTEROID_SMALL) and
-                #     e not in self.asteroids):
-                #     print('not in asteroids')
                 e.update(diff/1000)
                 if e.should_destroy:
                     to_destroy.append(e)
             
             for e in to_destroy:
                 if e.entity_type == GAME.ENTITY_PLAYERSHIP:
-                    # TODO: Lives/game over
                     self.set_client_lives(e.player_id, self.client_lives[e.player_id]-1)
-                    if self.client_lives[e.player_id] < 0:
-                        self.set_client_state(e.player_id, GAME.STATE_GAME_OVER)
-                    else:
-                        self.set_client_state(e.player_id, GAME.STATE_GAME_START)
+                    self.set_client_state(e.player_id, GAME.STATE_PLAYER_DIED)
+                    self.player_death_ticks[e.player_id] = current_ticks
                 self.destroy_entity(e.entity_id)
             
             to_destroy.clear()
 
             # Update clients
+            # Change client state after delay
+            for client_id, client_state in self.client_states.items():
+                if client_state == GAME.STATE_PLAYER_DIED:
+                    death_ticks = self.player_death_ticks[client_id]
+                    if current_ticks - death_ticks >= self.player_death_delay:
+                        self.player_death_ticks[client_id] = 0
+                        # Switch to game start or game over state, depending on lives
+                        if self.client_lives[client_id] < 0:
+                            self.set_client_state(client_id, GAME.STATE_GAME_OVER)
+                        else:
+                            self.set_client_state(client_id, GAME.STATE_GAME_START)
+
             # Send entity state to clients
             for e in self.entities.values():
                 self.send_global_msg(MESSAGES.UPDATEPOS, (MSGCONTENT.ENTITY_ID, e.entity_id), (MSGCONTENT.X_POS, e.position[0]), (MSGCONTENT.Y_POS, e.position[1]))

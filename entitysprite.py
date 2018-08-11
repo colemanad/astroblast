@@ -45,6 +45,10 @@ class EntitySprite(pygame.sprite.Sprite):
 
     def update(self):
         """Update sprite position, rotation, etc."""
+        if self.rotation >= 360:
+            self.rotation -= 360
+        elif self.rotation < 0:
+            self.rotation += 360
         self.image, self.rect = self.frames[self.current_frame][int(self.rotation)]
         self.rect = self.image.get_rect(center=self.position)
 

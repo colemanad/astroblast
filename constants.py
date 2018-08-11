@@ -52,6 +52,7 @@ class GAME(Values):
     STATE_GAME_START = ValueConstant('203')
     STATE_IN_GAME = ValueConstant('204')
     STATE_GAME_OVER = ValueConstant('205')
+    STATE_PLAYER_DIED = ValueConstant('206')
 
 
 class MESSAGES(Values):

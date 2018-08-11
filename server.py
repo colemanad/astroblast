@@ -86,10 +86,13 @@ class GameServer(GameModule, Thread):
                 # Create player entity at random position
                 pos = self.random_position_on_screen(100)
                 pship = self.create_entity(GAME.ENTITY_PLAYERSHIP, pos, 0, [0, 0], 0, 0, sender_id)
+                # Temporarily boost radius by 3x to make extra room around newly-spawned player
+                pship.radius *= 3
                 while (self.collide_group_and_entity(self.asteroids, pship) or
                        self.collide_group_and_entity(self.bullets, pship)):
                         # Choose a different random spot
                         pship.position = self.random_position_on_screen(100)
+                pship.radius /= 3
                 self.player_entities[sender_id] = pship
         
         elif msg_type == MESSAGES.INPUT_LEFT_DOWN:
@@ -137,11 +140,13 @@ class GameServer(GameModule, Thread):
                     # Spawn an asteroid in a random spot
                     pos = self.random_position_on_screen()
                     asteroid = self.spawn_asteroid(pos, GAME.ENTITY_ASTEROID_BIG)
-
+                    # Temporarily boost radius of asteroid by 2x to avoid bad spawning locations
+                    asteroid.radius *= 2
                     while (self.collide_group_and_entity(list(self.player_entities.values()), asteroid) or
                            self.collide_group_and_entity(self.bullets, asteroid)):
                         # Choose a different random spot
                         asteroid.position = self.random_position_on_screen()
+                    asteroid.radius /= 2
 
             # Asteroid-bullet collisions
             self.collide_groups(self.asteroids, self.bullets)

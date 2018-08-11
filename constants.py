@@ -43,6 +43,7 @@ class GAME(Values):
     ENTITY_ASTEROID_BIG = ValueConstant('104')
     ENTITY_ASTEROID_MED = ValueConstant('105')
     ENTITY_ASTEROID_SMALL = ValueConstant('106')
+    ENTITY_EXPLOSION = ValueConstant('107')
 
 
 class MESSAGES(Values):

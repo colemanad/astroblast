@@ -27,6 +27,7 @@ class Entity():
         self.entity_id = entity_id
         self.entity_type = entity_type
         self.components = []
+        self.should_destroy = False
     
     def add_component(self, component):
         self.components.append(component)

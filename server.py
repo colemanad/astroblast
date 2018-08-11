@@ -89,14 +89,12 @@ class GameServer(GameModule, Thread):
 
         # Run update logic if enough time has elapsed
         if self.ticks_since_last_update >= self.ms_per_frame:
-            # self.ticks_since_last_update -= self.ms_per_frame
             self.ticks_since_last_update = 0
 
-            if len(self.asteroids) < 10:
+            if len(self.asteroids) < 4:
                 # Spawn an asteroid in a random spot
                 pos = [random.randrange(800), random.randrange(600)]
-                kind = GAME.lookupByValue(str(random.randrange(104, 107)))
-                self.spawn_asteroid(pos, kind)
+                self.spawn_asteroid(pos, GAME.ENTITY_ASTEROID_BIG)
             
             if self.test_auto_spawn_ticks >= 3000:
                 self.test_auto_spawn_ticks = 0
@@ -110,8 +108,10 @@ class GameServer(GameModule, Thread):
             self.collide_groups(self.asteroids, self.bullets)
 
             # Update entities
-            for e in self.entities.values():
+            for e in list(self.entities.values()):
                 e.update(diff/1000)
+                if e.should_destroy:
+                    self.destroy_entity(e.entity_id)
             
             
             # Update clients
@@ -187,6 +187,8 @@ class GameServer(GameModule, Thread):
             e.add_component(components.BulletComponent())
             e.radius = 5
             self.bullets.append(e)
+        elif entity_type == GAME.ENTITY_EXPLOSION:
+            e.add_component(components.ExplosionComponent(0.5))
 
         e.visible = True
         e.active = True
@@ -201,10 +203,16 @@ class GameServer(GameModule, Thread):
                 for x in range(random.randrange(2, 4)):
                     pos = [e.position[0] + random.randrange(5, 20)*random.choice([-1, 1]), e.position[1] + random.randrange(5, 20)*random.choice([-1, 1])]
                     self.spawn_asteroid(pos, GAME.ENTITY_ASTEROID_MED)
-            if e.entity_type == GAME.ENTITY_ASTEROID_MED:
+                self.create_entity(GAME.ENTITY_EXPLOSION, e.position.copy())
+            elif e.entity_type == GAME.ENTITY_ASTEROID_MED:
                 for x in range(random.randrange(3, 5)):
                     pos = [e.position[0] + random.randrange(5, 20)*random.choice([-1, 1]), e.position[1] + random.randrange(5, 20)*random.choice([-1, 1])]
                     self.spawn_asteroid(pos, GAME.ENTITY_ASTEROID_SMALL)
+                self.create_entity(GAME.ENTITY_EXPLOSION, e.position.copy())
+            elif e.entity_type == GAME.ENTITY_ASTEROID_SMALL:
+                self.create_entity(GAME.ENTITY_EXPLOSION, e.position.copy())
+            elif e.entity_type == GAME.ENTITY_PLAYERSHIP:
+                self.create_entity(GAME.ENTITY_EXPLOSION, e.position.copy())
             self.send_global_msg(MESSAGES.DESTROY_ENTITY, (MSGCONTENT.ENTITY_ID, e.entity_id))
             self.dispatch.release_id(e.entity_id)
             self.unused_entities.append(e)

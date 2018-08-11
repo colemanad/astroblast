@@ -44,3 +44,14 @@ class BulletComponent():
         # Update position
         parent.position[0] = (parent.position[0] + parent.velocity[0]*delta_time) % GAME.WIDTH
         parent.position[1] = (parent.position[1] + parent.velocity[1]*delta_time) % GAME.WIDTH
+
+class ExplosionComponent():
+    def __init__(self, lifetime):
+        self.lifetime = lifetime
+        self.elapsed = 0
+
+    def update(self, parent, delta_time):
+        #Check lifetime
+        self.elapsed += delta_time
+        if self.elapsed >= self.lifetime:
+            parent.should_destroy = True

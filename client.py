@@ -229,6 +229,8 @@ class GameClient(GameModule):
                     self.send_msg(MESSAGES.REQCONNECT, self.local_server_id)
                 elif event.key == pygame.K_BACKSPACE:
                     self.disconnect()
+                elif event.key == pygame.K_RETURN:
+                    self.send_msg(MESSAGES.SIGNAL_PLAYER_READY, self.local_server_id)
                 elif event.key == pygame.K_LEFT:
                     self.send_msg(MESSAGES.INPUT_LEFT_DOWN, self.local_server_id)
                 elif event.key == pygame.K_RIGHT:

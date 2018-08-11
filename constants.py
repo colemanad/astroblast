@@ -70,6 +70,8 @@ class MESSAGES(Values):
     REQCONNECT = ValueConstant('300')   # Request connection to server
     REQUPDATE = ValueConstant('301')    # Request updated game state
 
+    SIGNAL_PLAYER_READY = ValueConstant('310')
+
     INPUT_RIGHT_DOWN = ValueConstant('350')
     INPUT_RIGHT_UP = ValueConstant('351')
     INPUT_LEFT_DOWN = ValueConstant('352')

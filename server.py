@@ -75,15 +75,18 @@ class GameServer(GameModule, Thread):
             # Tell new client about all existing entities
             for e in self.entities.values():
                 self.send_msg(MESSAGES.CREATE_ENTITY, sender_id, (MSGCONTENT.ENTITY_ID, e.entity_id), (MSGCONTENT.ENTITY_TYPE, e.entity_type), (MSGCONTENT.X_POS, e.position[0]), (MSGCONTENT.Y_POS, e.position[1]), (MSGCONTENT.ROTATION, e.rotation))
-            # Create player entity at random position
-            pos = [random.randrange(100, 700), random.randrange(100, 500)]
-            print(sender_id)
-            pship = self.create_entity(GAME.ENTITY_PLAYERSHIP, pos, 0, [0, 0], 0, 0, sender_id)
-            self.player_entities[sender_id] = pship
 
         elif msg_type == MESSAGES.SIGNAL_DISCONNECT:
             self.log("Received disconnect signal from client %d" % sender_id)
             self.dispatch.clients.discard(sender_id)
+        
+        elif msg_type == MESSAGES.SIGNAL_PLAYER_READY:
+            # TODO: Start game in single player, wait for other player in multi
+            if self.player_entities.get(sender_id) is None:
+                # Create player entity at random position
+                pos = [random.randrange(100, 700), random.randrange(100, 500)]
+                pship = self.create_entity(GAME.ENTITY_PLAYERSHIP, pos, 0, [0, 0], 0, 0, sender_id)
+                self.player_entities[sender_id] = pship
         
         elif msg_type == MESSAGES.INPUT_LEFT_DOWN:
             self.player_entities.get(sender_id).turn_direction += 1
@@ -123,7 +126,8 @@ class GameServer(GameModule, Thread):
         if self.ticks_since_last_update >= self.ms_per_frame:
             self.ticks_since_last_update = 0
 
-            if len(self.asteroids) == 0:
+            # In Python, an empty sequence type (such as a list) evaluates as False
+            if not self.asteroids:
                 # TODO: Increase number of big asteroids each round
                 for x in range(5):
                     # Spawn an asteroid in a random spot

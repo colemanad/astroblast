@@ -11,6 +11,7 @@
 
 from os import path
 import pygame
+from pgu import gui
 
 from gamemodule import GameModule
 from constants import GAME, MESSAGES, MSGCONTENT
@@ -44,19 +45,37 @@ def load_image_all_rotations(name, colorkey=None):
 
 class GameClient(GameModule):
     """Contains game client and pyGame functionality."""
-    def __init__(self, inQueue, outQueue):
+    def __init__(self, inQueue, outQueue, local_server_instance):
         GameModule.__init__(self, inQueue, outQueue)
         self.name = 'Client'
         self.module_id = int(GAME.LOCAL_CLIENT_ID.value)
         self.server_id = int(GAME.INVALID_ID.value)
         self.local_server_id = int(GAME.LOCAL_SERVER_ID.value)
+        self.local_server_instance = local_server_instance
+
+        self.connected = False
 
         # Initialize pyGame
         pygame.init()
         self.screen = pygame.display.set_mode((GAME.WIDTH, GAME.HEIGHT))
         pygame.display.set_caption('AstroBlast!')
         self.clock = pygame.time.Clock()
+        pygame.mouse.set_visible(False)
 
+        # Initialize pgu.gui
+        self.gui_app = gui.App()
+        self.gui_container = gui.Container(width=GAME.WIDTH, height=GAME.HEIGHT, x=0, y=0)
+        self.gui_sp_button = gui.Button("Single Player", width=150)
+        self.gui_sp_button.connect(gui.CLICK, self.gui_button_clicked, GAME.GUI_BUTTON_SP)
+        self.gui_container.add(self.gui_sp_button, GAME.WIDTH/2 - 75, GAME.HEIGHT/2)
+        self.gui_mp_button = gui.Button("Multiplayer", width=150)
+        self.gui_mp_button.connect(gui.CLICK, self.gui_button_clicked, GAME.GUI_BUTTON_MP)
+        self.gui_container.add(self.gui_mp_button, GAME.WIDTH/2 - 75, 2*GAME.HEIGHT/3)
+        self.gui_sp_button.connect(gui.CLICK, self.gui_button_clicked, GAME.GUI_BUTTON_MP)
+        self.gui_app.init(self.gui_container, self.screen, pygame.rect.Rect(0, 0, GAME.WIDTH, GAME.HEIGHT))
+
+        cursor, rect = load_image('cursor.png')
+        self.cursor = cursor
         self.frames = {'ship':[load_image_all_rotations('ship.png'),
                                load_image_all_rotations('ship_thrust.png')],
                        'asteroid_big':[load_image_all_rotations('asteroid_big.png')],
@@ -78,8 +97,8 @@ class GameClient(GameModule):
         self.player_lives = 0
         self.player_score = 0
 
-        # self.game_state = GAME.STATE_TITLE
-        self.game_state = GAME.STATE_GAME_START
+        self.game_state = GAME.STATE_TITLE
+        # self.game_state = GAME.STATE_GAME_START
 
     def quit(self):
         """Sends quit message and halts client"""
@@ -95,6 +114,7 @@ class GameClient(GameModule):
                 self.module_id = new_id
                 self.server_id = sender_id
                 self.log("Connection to server successful, received client ID %d" % self.module_id)
+                self.connected = True
                 self.send_msg(MESSAGES.CONNECT_SUCCESS, sender_id)
         
         elif msg_type == MESSAGES.CONNECT_REJECT:
@@ -224,6 +244,8 @@ class GameClient(GameModule):
         # TODO: Check if connected before proceeding
         if should_send_signal:
             self.send_msg(MESSAGES.SIGNAL_DISCONNECT, self.server_id)
+        
+        self.connected = False
 
         self.log("Disconnected from server")
         self.module_id = int(GAME.LOCAL_CLIENT_ID.value)
@@ -231,6 +253,15 @@ class GameClient(GameModule):
         # Delete sprites
         self.sprites.empty()
         self.entities.clear()
+
+    def gui_button_clicked(self, button_type):
+        if button_type == GAME.GUI_BUTTON_SP:
+            # Start the server on a separate thread
+            self.local_server_instance.start()
+            # Start singleplayer by connecting to server
+            self.send_msg(MESSAGES.REQCONNECT, self.local_server_id)
+        elif button_type == GAME.GUI_BUTTON_MP:
+            print('mp')
 
     def update(self):
         """Update game state/input state"""
@@ -244,13 +275,16 @@ class GameClient(GameModule):
             events_found = True
             event_str += pygame.event.event_name(event.type) + ', '
 
+            if self.game_state == GAME.STATE_TITLE:
+                # Pass events to gui
+                self.gui_app.event(event)
+
             # Handle keyboard events
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_ESCAPE:
                     self.quit()
                 elif event.key == pygame.K_BACKSLASH:
-                    # Always use local server here, because this is just for testing purposes
-                    self.send_msg(MESSAGES.REQCONNECT, self.local_server_id)
+                    pass
                 elif event.key == pygame.K_BACKSPACE:
                     self.disconnect()
                 elif event.key == pygame.K_LEFT:
@@ -293,7 +327,14 @@ class GameClient(GameModule):
         self.sprites.update()
         self.sprites.draw(self.screen)
 
-        # Text
+        # Text/GUI
+        if (self.game_state == GAME.STATE_TITLE):
+            # Draw GUI
+            self.gui_app.paint(self.screen)
+            # Draw cursor when appropriate
+            if pygame.mouse.get_focused():
+                self.screen.blit(self.cursor, pygame.mouse.get_pos())
+
         normal_font = pygame.font.SysFont('Helvetica, Arial', 20, 1)
         larger_font = pygame.font.SysFont('Helvetica, Arial', 30, 1)
         if (self.game_state == GAME.STATE_IN_GAME or self.game_state == GAME.STATE_GAME_START or

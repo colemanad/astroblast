@@ -36,11 +36,9 @@ def main():
 
         # Instantiate the server and client modules
         server = GameServer(server_queue, dispatch)
-        client = GameClient(local_client_queue, dispatch_queue)
+        client = GameClient(local_client_queue, dispatch_queue, server)
 
         dispatch.start()
-        # Start the server on a separate thread
-        server.start()
 
         ms_per_frame = 1000.0 / 60.0
         last_ticks = 0

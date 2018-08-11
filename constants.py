@@ -54,6 +54,10 @@ class GAME(Values):
     STATE_GAME_OVER = ValueConstant('205')
     STATE_PLAYER_DIED = ValueConstant('206')
 
+    # GUI
+    GUI_BUTTON_SP = ValueConstant('300')
+    GUI_BUTTON_MP = ValueConstant('301')
+
 
 class MESSAGES(Values):
     """Message type constants"""

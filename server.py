@@ -134,14 +134,6 @@ class GameServer(GameModule, Thread):
                            self.collide_group_and_entity(self.bullets, asteroid)):
                         # Choose a different random spot
                         asteroid.position = self.random_position_on_screen()
-            
-            # if self.test_auto_spawn_ticks >= 3000:
-                # self.test_auto_spawn_ticks = 0
-                # spawn a bullet with a random trajectory
-                # pos = [random.randrange(800), random.randrange(600)]
-                # angle = math.radians(random.randrange(360))
-                # vel = [math.cos(angle)*200, -math.sin(angle)*200]
-                # self.create_entity(GAME.ENTITY_BULLET, pos, 0, vel, 0)
 
             # Asteroid-bullet collisions
             self.collide_groups(self.asteroids, self.bullets)
@@ -217,23 +209,30 @@ class GameServer(GameModule, Thread):
 
         if entity_type == GAME.ENTITY_TEST:
             e.add_component(components.TestComponent())
+
         elif (entity_type == GAME.ENTITY_ASTEROID_BIG or
               entity_type == GAME.ENTITY_ASTEROID_MED or
               entity_type == GAME.ENTITY_ASTEROID_SMALL):
             if entity_type == GAME.ENTITY_ASTEROID_BIG:
                 e.radius = 58
+                
             elif entity_type == GAME.ENTITY_ASTEROID_MED:
                 e.radius = 21
+                
             elif entity_type == GAME.ENTITY_ASTEROID_SMALL:
                 e.radius = 14
             e.add_component(components.AsteroidComponent())
             self.asteroids.append(e)
+
         elif entity_type == GAME.ENTITY_BULLET:
             e.add_component(components.BulletComponent())
             e.radius = 5
+            e.lifetime = 5
             self.bullets.append(e)
+            
         elif entity_type == GAME.ENTITY_EXPLOSION:
             e.add_component(components.ExplosionComponent(0.5))
+            
         elif entity_type == GAME.ENTITY_PLAYERSHIP:
             e.add_component(components.PlayerComponent())
             e.radius = 30
@@ -255,16 +254,20 @@ class GameServer(GameModule, Thread):
                     pos = [e.position[0] + random.randrange(5, 20)*random.choice([-1, 1]), e.position[1] + random.randrange(5, 20)*random.choice([-1, 1])]
                     self.spawn_asteroid(pos, GAME.ENTITY_ASTEROID_MED)
                 self.create_entity(GAME.ENTITY_EXPLOSION, e.position.copy())
+
             elif e.entity_type == GAME.ENTITY_ASTEROID_MED:
                 for x in range(random.randrange(3, 5)):
                     pos = [e.position[0] + random.randrange(5, 20)*random.choice([-1, 1]), e.position[1] + random.randrange(5, 20)*random.choice([-1, 1])]
                     self.spawn_asteroid(pos, GAME.ENTITY_ASTEROID_SMALL)
                 self.create_entity(GAME.ENTITY_EXPLOSION, e.position.copy())
+
             elif e.entity_type == GAME.ENTITY_ASTEROID_SMALL:
                 self.create_entity(GAME.ENTITY_EXPLOSION, e.position.copy())
+
             elif e.entity_type == GAME.ENTITY_PLAYERSHIP:
                 self.player_entities[e.player_id] = None
                 self.create_entity(GAME.ENTITY_EXPLOSION, e.position.copy())
+
             self.send_global_msg(MESSAGES.DESTROY_ENTITY, (MSGCONTENT.ENTITY_ID, e.entity_id))
             self.dispatch.release_id(e.entity_id)
             self.unused_entities.append(e)

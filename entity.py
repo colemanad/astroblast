@@ -34,6 +34,8 @@ class Entity():
         self.turn_direction = 0
         self.thrust = False
         self.forward = angle_vector(math.radians(self.rotation))
+        self.lifetime = 0
+        self.elapsed = 0
     
     def add_component(self, component):
         self.components.append(component)
@@ -41,6 +43,11 @@ class Entity():
     def update(self, delta_time):
         for c in self.components:
             c.update(self, delta_time)
+        
+        self.elapsed += delta_time
+        if self.lifetime > 0 and self.elapsed >= self.lifetime:
+            self.should_destroy = True
+
     
     def collide(self, other):
         if distance(self.position, other.position) <= self.radius + other.radius:

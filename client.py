@@ -76,6 +76,8 @@ class GameClient(GameModule):
         self.player_entity_id = -1
         self.player_alive = False
 
+        self.game_state = GAME.STATE_TITLE
+
     def quit(self):
         """Sends quit message and halts client"""
         self.send_msg(MESSAGES.TERMINATE, self.local_server_id)

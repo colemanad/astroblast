@@ -20,6 +20,7 @@ import pygame
 from gamemodule import GameModule
 from constants import MESSAGES, MSGCONTENT, GAME
 from entity import Entity
+from inputstate import InputState, ClientInputState
 import components
 
 
@@ -47,6 +48,10 @@ class GameServer(GameModule, Thread):
 
         self.player_entities = {}
 
+        # TODO: Asteroids in background on title screen?
+        self.game_state = GAME.STATE_GAME_START
+        self.input_states = {}
+
     def run(self):
         """Gets called at thread start"""
         # self.create_entity(GAME.ENTITY_TEST, (400, 300))
@@ -72,6 +77,8 @@ class GameServer(GameModule, Thread):
                 self.send_msg(MESSAGES.CONNECT_REJECT, sender_id)
         
         elif msg_type == MESSAGES.CONNECT_SUCCESS:
+            # Create input state for client
+            self.input_states[sender_id] = ClientInputState(sender_id)
             # Tell new client about all existing entities
             for e in self.entities.values():
                 self.send_msg(MESSAGES.CREATE_ENTITY, sender_id, (MSGCONTENT.ENTITY_ID, e.entity_id), (MSGCONTENT.ENTITY_TYPE, e.entity_type), (MSGCONTENT.X_POS, e.position[0]), (MSGCONTENT.Y_POS, e.position[1]), (MSGCONTENT.ROTATION, e.rotation))
@@ -96,41 +103,57 @@ class GameServer(GameModule, Thread):
                 self.player_entities[sender_id] = pship
         
         elif msg_type == MESSAGES.INPUT_LEFT_DOWN:
+            self.input_states[sender_id].left = True
             pship = self.player_entities.get(sender_id)
             if pship is not None:
                 pship.turn_direction += 1
         
         elif msg_type == MESSAGES.INPUT_LEFT_UP:
+            self.input_states[sender_id].left = False
             pship = self.player_entities.get(sender_id)
             if pship is not None:
                 pship.turn_direction -= 1
 
         elif msg_type == MESSAGES.INPUT_RIGHT_DOWN:
+            self.input_states[sender_id].right = True
             pship = self.player_entities.get(sender_id)
             if pship is not None:
                 pship.turn_direction -= 1
         
         elif msg_type == MESSAGES.INPUT_RIGHT_UP:
+            self.input_states[sender_id].right = False
             pship = self.player_entities.get(sender_id)
             if pship is not None:
                 pship.turn_direction += 1
 
         elif msg_type == MESSAGES.INPUT_THRUST_DOWN:
+            self.input_states[sender_id].thrust = True
             pship = self.player_entities.get(sender_id)
             if pship is not None:
                 pship.thrust = True
 
         elif msg_type == MESSAGES.INPUT_THRUST_UP:
+            self.input_states[sender_id].thrust = False
             pship = self.player_entities.get(sender_id)
             if pship is not None:
                 pship.thrust = False
 
+        elif msg_type == MESSAGES.INPUT_DOWN_DOWN:
+            self.input_states[sender_id].down = True
+
+        elif msg_type == MESSAGES.INPUT_DOWN_UP:
+            self.input_states[sender_id].down = False
+
         elif msg_type == MESSAGES.INPUT_SHOOT_DOWN:
+            self.input_states[sender_id].shoot = True
             pship = self.player_entities.get(sender_id)
             if pship is not None:
                 pos = [pship.position[0] + 30*pship.forward[0], pship.position[1] + 30*pship.forward[1]]
                 vel = [400*pship.forward[0], 400*pship.forward[1]]
                 bullet = self.create_entity(GAME.ENTITY_BULLET, pos, 0, vel, 0, 0, pship.player_id)
+
+        elif msg_type == MESSAGES.INPUT_SHOOT_UP:
+            self.input_states[sender_id].shoot = False
 
     def update(self):
         """Update internal game state"""
@@ -144,6 +167,45 @@ class GameServer(GameModule, Thread):
         # Run update logic if enough time has elapsed
         if self.ticks_since_last_update >= self.ms_per_frame:
             self.ticks_since_last_update = 0
+
+            # Process input
+            for input_state in list(self.input_states.values()):
+                if input_state.left and not input_state.right:
+                    pship = self.player_entities.get(input_state.client_id)
+                    if pship is not None:
+                        pship.turn_direction = 1
+                elif input_state.right and not input_state.left:
+                    pship = self.player_entities.get(input_state.client_id)
+                    if pship is not None:
+                        pship.turn_direction = -1
+                else:
+                    pship = self.player_entities.get(input_state.client_id)
+                    if pship is not None:
+                        pship.turn_direction = 0
+
+                if input_state.thrust:
+                    pship = self.player_entities.get(input_state.client_id)
+                    if pship is not None:
+                        pship.thrust = True
+                else:
+                    pship = self.player_entities.get(input_state.client_id)
+                    if pship is not None:
+                        pship.thrust = False
+
+                if input_state.down:
+                    # TODO: Menu stuff here
+                    # TODO: actually, menu stuff should probably be client-side only for the most part
+                    pass
+                else:
+                    pass
+
+                if input_state.shoot:
+                    input_state.shoot = False
+                    pship = self.player_entities.get(input_state.client_id)
+                    if pship is not None:
+                        pos = [pship.position[0] + 30*pship.forward[0], pship.position[1] + 30*pship.forward[1]]
+                        vel = [400*pship.forward[0], 400*pship.forward[1]]
+                        self.create_entity(GAME.ENTITY_BULLET, pos, 0, vel, 0, 0, pship.player_id)
 
             # In Python, an empty sequence type (such as a list) evaluates as False
             if not self.asteroids:

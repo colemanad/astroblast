@@ -45,6 +45,15 @@ class GAME(Values):
     ENTITY_ASTEROID_SMALL = ValueConstant('106')
     ENTITY_EXPLOSION = ValueConstant('107')
 
+    # Game states
+    STATE_TITLE = ValueConstant('200')
+    STATE_MULTIPLAYER_MENU = ValueConstant('201')
+    STATE_GAME_LOADING = ValueConstant('202')
+    STATE_GAME_START = ValueConstant('203')
+    STATE_IN_GAME_SINGLE = ValueConstant('204')
+    STATE_IN_GAME_MULTI = ValueConstant('205')
+    STATE_GAME_OVER = ValueConstant('206')
+
 
 class MESSAGES(Values):
     """Message type constants"""
@@ -78,18 +87,23 @@ class MESSAGES(Values):
     INPUT_LEFT_UP = ValueConstant('353')
     INPUT_THRUST_DOWN = ValueConstant('354')
     INPUT_THRUST_UP = ValueConstant('355')
-    INPUT_SHOOT_DOWN = ValueConstant('356')
-    INPUT_SHOOT_UP = ValueConstant('357')
+    INPUT_DOWN_DOWN = ValueConstant('356')
+    INPUT_DOWN_UP = ValueConstant('357')
+    INPUT_SHOOT_DOWN = ValueConstant('358')
+    INPUT_SHOOT_UP = ValueConstant('359')
 
     # Server->Client messages
     CONNECT_ACCEPT = ValueConstant('400')
     CONNECT_REJECT = ValueConstant('401')
     CONNECT_SUCCESS = ValueConstant('402')
+    CHANGE_STATE = ValueConstant('450')
 
 class MSGCONTENT(Values):
     """Message content constants"""
     NONE = ValueConstant('0')
     TEST = ValueConstant('1')
+
+    GAME_STATE = ValueConstant('5')
 
     RECIPIENT_ID = ValueConstant('9')
     ID = ValueConstant('10')

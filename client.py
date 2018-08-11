@@ -224,7 +224,7 @@ class GameClient(GameModule):
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_ESCAPE:
                     self.quit()
-                elif event.key == pygame.K_SPACE:
+                elif event.key == pygame.K_BACKSLASH:
                     # Always use local server here, because this is just for testing purposes
                     self.send_msg(MESSAGES.REQCONNECT, self.local_server_id)
                 elif event.key == pygame.K_BACKSPACE:

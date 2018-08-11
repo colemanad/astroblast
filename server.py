@@ -103,6 +103,14 @@ class GameServer(GameModule, Thread):
         elif msg_type == MESSAGES.INPUT_THRUST_UP:
             self.player_entities.get(sender_id).thrust = False
 
+        elif msg_type == MESSAGES.INPUT_SHOOT_DOWN:
+            pship = self.player_entities.get(sender_id)
+            if pship is not None:
+                pos = [pship.position[0] + 30*pship.forward[0], pship.position[1] + 30*pship.forward[1]]
+                # vel = [pship.velocity[0] + 200*pship.forward[0], pship.velocity[1] + 200*pship.forward[1]]
+                vel = [400*pship.forward[0], 400*pship.forward[1]]
+                self.create_entity(GAME.ENTITY_BULLET, pos, 0, vel)
+
     def update(self):
         """Update internal game state"""
         # Timing logic; ensure that update is no frequent than value specified by GAME.FPS
@@ -121,13 +129,13 @@ class GameServer(GameModule, Thread):
                 pos = [random.randrange(800), random.randrange(600)]
                 self.spawn_asteroid(pos, GAME.ENTITY_ASTEROID_BIG)
             
-            if self.test_auto_spawn_ticks >= 3000:
-                self.test_auto_spawn_ticks = 0
+            # if self.test_auto_spawn_ticks >= 3000:
+                # self.test_auto_spawn_ticks = 0
                 # spawn a bullet with a random trajectory
-                pos = [random.randrange(800), random.randrange(600)]
-                angle = math.radians(random.randrange(360))
-                vel = [math.cos(angle)*200, -math.sin(angle)*200]
-                self.create_entity(GAME.ENTITY_BULLET, pos, 0, vel, 0)
+                # pos = [random.randrange(800), random.randrange(600)]
+                # angle = math.radians(random.randrange(360))
+                # vel = [math.cos(angle)*200, -math.sin(angle)*200]
+                # self.create_entity(GAME.ENTITY_BULLET, pos, 0, vel, 0)
 
             # Asteroid-bullet collisions
             self.collide_groups(self.asteroids, self.bullets)

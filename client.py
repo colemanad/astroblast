@@ -294,25 +294,25 @@ class GameClient(GameModule):
         self.sprites.draw(self.screen)
 
         # Text
-        normal_font = pygame.font.SysFont("Helvetica", 20, 1)
-        larger_font = pygame.font.SysFont("Helvetica", 30, 1)
-        if self.game_state == GAME.STATE_IN_GAME:
-            lives_label = normal_font.render("Lives: %d" % self.player_lives, 1, (255, 255, 0))
-            self.screen.blit(lives_label, (50, 20))
-            score_label = normal_font.render("Score: %d" % self.player_score, 1, (255, 255, 0))
-            self.screen.blit(score_label, (50, 40))
-        if self.game_state == GAME.STATE_GAME_START:
-            lives_label = normal_font.render("Lives: %d" % self.player_lives, 1, (255, 255, 0))
-            self.screen.blit(lives_label, (50, 20))
-            score_label = normal_font.render("Score: %d" % self.player_score, 1, (255, 255, 0))
-            self.screen.blit(score_label, (50, 40))
-            start_label = normal_font.render("Press Fire (Spacebar)", 1, (255, 255, 0))
-            self.screen.blit(start_label, (GAME.WIDTH/2 - 50, GAME.HEIGHT/2))
+        normal_font = pygame.font.SysFont('Helvetica, Arial', 20, 1)
+        larger_font = pygame.font.SysFont('Helvetica, Arial', 30, 1)
+        if (self.game_state == GAME.STATE_IN_GAME or self.game_state == GAME.STATE_GAME_START or
+            self.game_state == GAME.STATE_PLAYER_DIED):
+            width, height = normal_font.size('Lives:')
+            lives_label = normal_font.render('Lives: %d' % self.player_lives, 1, (255, 255, 0))
+            self.screen.blit(lives_label, (20, 20))
+            score_label = normal_font.render('Score: %d' % self.player_score, 1, (255, 255, 0))
+            self.screen.blit(score_label, (20, height + 20))
+
+        if self.game_state == GAME.STATE_GAME_START or self.game_state == GAME.STATE_GAME_OVER:
+            width, height = normal_font.size('Press Fire (Spacebar)')
+            start_label = normal_font.render('Press Fire (Spacebar)', 1, (255, 255, 0))
+            self.screen.blit(start_label, (GAME.WIDTH/2 - width/2, GAME.HEIGHT/2))
+
         if self.game_state == GAME.STATE_GAME_OVER:
-            game_over_label = larger_font.render("Game Over!", 1, (255, 255, 0))
-            press_fire_label = normal_font.render("Press Fire (Spacebar)", 1, (255, 255, 0))
-            self.screen.blit(game_over_label, (GAME.WIDTH/2 - 35, GAME.HEIGHT/2 - 30))
-            self.screen.blit(press_fire_label, (GAME.WIDTH/2 - 50, GAME.HEIGHT/2))
+            width, height = larger_font.size('Game Over!')
+            game_over_label = larger_font.render('Game Over!', 1, (255, 255, 0))
+            self.screen.blit(game_over_label, (GAME.WIDTH/2 - width/2, GAME.HEIGHT/2 - 40))
 
 
         # Display surface to the screen

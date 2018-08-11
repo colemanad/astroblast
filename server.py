@@ -271,7 +271,7 @@ class GameServer(GameModule, Thread):
                     if current_ticks - death_ticks >= self.player_death_delay:
                         self.player_death_ticks[client_id] = 0
                         # Switch to game start or game over state, depending on lives
-                        if self.client_lives[client_id] < 0:
+                        if self.client_lives[client_id] <= 0:
                             self.set_client_state(client_id, GAME.STATE_GAME_OVER)
                         else:
                             self.set_client_state(client_id, GAME.STATE_GAME_START)

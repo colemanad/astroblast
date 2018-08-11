@@ -28,6 +28,8 @@ class Entity():
         self.entity_type = entity_type
         self.components = []
         self.should_destroy = False
+
+        self.turn_direction = 0
     
     def add_component(self, component):
         self.components.append(component)

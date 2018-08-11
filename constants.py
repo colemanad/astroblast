@@ -70,6 +70,15 @@ class MESSAGES(Values):
     REQCONNECT = ValueConstant('300')   # Request connection to server
     REQUPDATE = ValueConstant('301')    # Request updated game state
 
+    INPUT_RIGHT_DOWN = ValueConstant('350')
+    INPUT_RIGHT_UP = ValueConstant('351')
+    INPUT_LEFT_DOWN = ValueConstant('352')
+    INPUT_LEFT_UP = ValueConstant('353')
+    INPUT_THRUST_DOWN = ValueConstant('354')
+    INPUT_THRUST_UP = ValueConstant('355')
+    INPUT_SHOOT_DOWN = ValueConstant('356')
+    INPUT_SHOOT_UP = ValueConstant('357')
+
     # Server->Client messages
     CONNECT_ACCEPT = ValueConstant('400')
     CONNECT_REJECT = ValueConstant('401')
@@ -85,6 +94,7 @@ class MSGCONTENT(Values):
     SET_ID = ValueConstant('11')
     ENTITY_ID = ValueConstant('13')
     ENTITY_TYPE = ValueConstant('14')
+    PLAYER_ID = ValueConstant('15')
 
     # Game state
     X_POS = ValueConstant('100')

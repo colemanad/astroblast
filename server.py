@@ -45,6 +45,8 @@ class GameServer(GameModule, Thread):
         self.asteroids = []
         self.bullets = []
 
+        self.player_entities = {}
+
     def run(self):
         """Gets called at thread start"""
         # self.create_entity(GAME.ENTITY_TEST, (400, 300))
@@ -73,10 +75,26 @@ class GameServer(GameModule, Thread):
             # Tell new client about all existing entities
             for e in self.entities.values():
                 self.send_msg(MESSAGES.CREATE_ENTITY, sender_id, (MSGCONTENT.ENTITY_ID, e.entity_id), (MSGCONTENT.ENTITY_TYPE, e.entity_type), (MSGCONTENT.X_POS, e.position[0]), (MSGCONTENT.Y_POS, e.position[1]), (MSGCONTENT.ROTATION, e.rotation))
+            # Create player entity at random position
+            pos = [random.randrange(100, 700), random.randrange(100, 500)]
+            pship = self.create_entity(GAME.ENTITY_PLAYERSHIP, pos)
+            self.player_entities[sender_id] = pship
 
         elif msg_type == MESSAGES.SIGNAL_DISCONNECT:
             self.log("Received disconnect signal from client %d" % sender_id)
             self.dispatch.clients.discard(sender_id)
+        
+        elif msg_type == MESSAGES.INPUT_LEFT_DOWN:
+            self.player_entities.get(sender_id).turn_direction += 1
+        
+        elif msg_type == MESSAGES.INPUT_LEFT_UP:
+            self.player_entities.get(sender_id).turn_direction -= 1
+
+        elif msg_type == MESSAGES.INPUT_RIGHT_DOWN:
+            self.player_entities.get(sender_id).turn_direction -= 1
+        
+        elif msg_type == MESSAGES.INPUT_RIGHT_UP:
+            self.player_entities.get(sender_id).turn_direction += 1
 
     def update(self):
         """Update internal game state"""
@@ -189,12 +207,16 @@ class GameServer(GameModule, Thread):
             self.bullets.append(e)
         elif entity_type == GAME.ENTITY_EXPLOSION:
             e.add_component(components.ExplosionComponent(0.5))
+        elif entity_type == GAME.ENTITY_PLAYERSHIP:
+            e.add_component(components.PlayerComponent())
+            e.radius = 30
 
         e.visible = True
         e.active = True
         self.entities[e.entity_id] = e
         self.send_global_msg(MESSAGES.CREATE_ENTITY, (MSGCONTENT.ENTITY_ID, e.entity_id), (MSGCONTENT.ENTITY_TYPE, e.entity_type), (MSGCONTENT.X_POS, e.position[0]), (MSGCONTENT.Y_POS, e.position[1]), (MSGCONTENT.ROTATION, e.rotation))
         self.log('Spawned entity %d of type %s' % (e.entity_id, e.entity_type.name))
+        return e
     
     def destroy_entity(self, entity_id):
         e = self.entities.pop(entity_id, None)
@@ -212,6 +234,7 @@ class GameServer(GameModule, Thread):
             elif e.entity_type == GAME.ENTITY_ASTEROID_SMALL:
                 self.create_entity(GAME.ENTITY_EXPLOSION, e.position.copy())
             elif e.entity_type == GAME.ENTITY_PLAYERSHIP:
+                self.player_entities[e.player_id] = None
                 self.create_entity(GAME.ENTITY_EXPLOSION, e.position.copy())
             self.send_global_msg(MESSAGES.DESTROY_ENTITY, (MSGCONTENT.ENTITY_ID, e.entity_id))
             self.dispatch.release_id(e.entity_id)

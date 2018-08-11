@@ -58,6 +58,7 @@ class GameClient(GameModule):
         self.clock = pygame.time.Clock()
 
         self.frames = {'ship':[load_image_all_rotations('ship.png')],
+                       'ship_thrust':[load_image_all_rotations('ship_thrust.png')],
                        'asteroid_big':[load_image_all_rotations('asteroid_big.png')],
                        'asteroid_med':[load_image_all_rotations('asteroid_med.png')],
                        'asteroid_small':[load_image_all_rotations('asteroid_small.png')],
@@ -71,6 +72,8 @@ class GameClient(GameModule):
         for x in range(100):
             self.unused_entities.append(EntitySprite(None))
         self.sprites = pygame.sprite.Group()
+
+        self.player_entity_id = -1
 
     def quit(self):
         """Sends quit message and halts client"""
@@ -113,6 +116,16 @@ class GameClient(GameModule):
                     e.initialize(info, pos, rot, entity_id, entity_type)
                     self.entities[e.entity_id] = e
                     self.sprites.add(e)
+                    self.log('Added sprite for entity %d of type %s' % (e.entity_id, e.entity_type.name))
+
+                elif entity_type == GAME.ENTITY_PLAYERSHIP:
+                    info = SpriteInfo(entity_type, self.frames['ship'], 0, 0)
+                    e.initialize(info, pos, rot, entity_id, entity_type)
+                    self.entities[e.entity_id] = e
+                    self.sprites.add(e)
+                    pid = msg_content.get(MSGCONTENT.PLAYER_ID, None)
+                    if pid is not None and pid == self.module_id:
+                        self.player_entity_id = e.entity_id
                     self.log('Added sprite for entity %d of type %s' % (e.entity_id, e.entity_type.name))
 
                 elif entity_type == GAME.ENTITY_ASTEROID_BIG:
@@ -216,6 +229,25 @@ class GameClient(GameModule):
                     self.send_msg(MESSAGES.REQCONNECT, self.local_server_id)
                 elif event.key == pygame.K_BACKSPACE:
                     self.disconnect()
+                elif event.key == pygame.K_LEFT:
+                    self.send_msg(MESSAGES.INPUT_LEFT_DOWN, self.local_server_id)
+                elif event.key == pygame.K_RIGHT:
+                    self.send_msg(MESSAGES.INPUT_RIGHT_DOWN, self.local_server_id)
+                elif event.key == pygame.K_UP:
+                    self.send_msg(MESSAGES.INPUT_THRUST_DOWN, self.local_server_id)
+                elif event.key == pygame.K_SPACE:
+                    self.send_msg(MESSAGES.INPUT_SHOOT_DOWN, self.local_server_id)
+
+            if event.type == pygame.KEYUP:
+                if event.key == pygame.K_LEFT:
+                    self.send_msg(MESSAGES.INPUT_LEFT_UP, self.local_server_id)
+                elif event.key == pygame.K_RIGHT:
+                    self.send_msg(MESSAGES.INPUT_RIGHT_UP, self.local_server_id)
+                elif event.key == pygame.K_UP:
+                    self.send_msg(MESSAGES.INPUT_THRUST_UP, self.local_server_id)
+                elif event.key == pygame.K_SPACE:
+                    self.send_msg(MESSAGES.INPUT_SHOOT_UP, self.local_server_id)
+
             elif event.type == pygame.QUIT:
                 self.quit()
         

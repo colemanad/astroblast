@@ -25,6 +25,21 @@ class TestComponent():
             elif parent.rotation < 0:
                 parent.rotation += 360
 
+class PlayerComponent():
+    def update(self, parent, delta_time):
+        # Update position
+        parent.position[0] = (parent.position[0] + parent.velocity[0]*delta_time) % GAME.WIDTH
+        parent.position[1] = (parent.position[1] + parent.velocity[1]*delta_time) % GAME.WIDTH
+
+        # Update rotation
+        parent.angular_velocity = parent.turn_direction * 240
+        parent.rotation += parent.angular_velocity*delta_time
+        while parent.rotation >= 360 or parent.rotation < 0:
+            if parent.rotation >= 360:
+                parent.rotation -= 360
+            elif parent.rotation < 0:
+                parent.rotation += 360
+
 class AsteroidComponent():
     def update(self, parent, delta_time):
         # Update position

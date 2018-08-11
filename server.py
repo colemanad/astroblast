@@ -41,6 +41,8 @@ class GameServer(GameModule, Thread):
 
         self.player_death_delay = 1000
         self.player_death_ticks = {}
+        self.player_shoot_delay = 333
+        self.player_shoot_ticks = {}
 
         self.entities = {}
         self.unused_entities = []
@@ -108,6 +110,7 @@ class GameServer(GameModule, Thread):
             self.set_client_lives(sender_id, 3)
             self.set_client_score(sender_id, 0)
             self.player_death_ticks[sender_id] = 0
+            self.player_shoot_ticks[sender_id] = 0
             self.bullets[sender_id] = []
             # Tell new client about all existing entities
             for e in self.entities.values():
@@ -210,12 +213,14 @@ class GameServer(GameModule, Thread):
                             pass
 
                         if input_state.shoot:
-                            input_state.shoot = False
-                            pship = self.player_entities.get(input_state.client_id)
-                            if pship is not None:
-                                pos = [pship.position[0] + 30*pship.forward[0], pship.position[1] + 30*pship.forward[1]]
-                                vel = [400*pship.forward[0], 400*pship.forward[1]]
-                                self.create_entity(GAME.ENTITY_BULLET, pos, 0, vel, 0, 0, pship.player_id)
+                            # input_state.shoot = False
+                            if current_ticks - self.player_shoot_ticks[input_state.client_id] >= self.player_shoot_delay:
+                                self.player_shoot_ticks[input_state.client_id] = current_ticks
+                                pship = self.player_entities.get(input_state.client_id)
+                                if pship is not None:
+                                    pos = [pship.position[0] + 30*pship.forward[0], pship.position[1] + 30*pship.forward[1]]
+                                    vel = [400*pship.forward[0], 400*pship.forward[1]]
+                                    self.create_entity(GAME.ENTITY_BULLET, pos, 0, vel, 0, 0, pship.player_id)
 
                     elif client_state == GAME.STATE_GAME_START:
                         if input_state.shoot:

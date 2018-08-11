@@ -374,7 +374,7 @@ class GameServer(GameModule, Thread):
         elif entity_type == GAME.ENTITY_BULLET:
             e.add_component(components.BulletComponent())
             e.radius = 5
-            e.lifetime = 3
+            e.lifetime = 1
             self.bullets[player_id].append(e)
             
         elif entity_type == GAME.ENTITY_EXPLOSION:

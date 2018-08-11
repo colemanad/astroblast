@@ -107,7 +107,6 @@ class GameServer(GameModule, Thread):
             pship = self.player_entities.get(sender_id)
             if pship is not None:
                 pos = [pship.position[0] + 30*pship.forward[0], pship.position[1] + 30*pship.forward[1]]
-                # vel = [pship.velocity[0] + 200*pship.forward[0], pship.velocity[1] + 200*pship.forward[1]]
                 vel = [400*pship.forward[0], 400*pship.forward[1]]
                 self.create_entity(GAME.ENTITY_BULLET, pos, 0, vel)
 
@@ -124,10 +123,17 @@ class GameServer(GameModule, Thread):
         if self.ticks_since_last_update >= self.ms_per_frame:
             self.ticks_since_last_update = 0
 
-            if len(self.asteroids) < 4:
-                # Spawn an asteroid in a random spot
-                pos = [random.randrange(800), random.randrange(600)]
-                self.spawn_asteroid(pos, GAME.ENTITY_ASTEROID_BIG)
+            if len(self.asteroids) == 0:
+                # TODO: Increase number of big asteroids each round
+                for x in range(5):
+                    # Spawn an asteroid in a random spot
+                    pos = self.random_position_on_screen()
+                    asteroid = self.spawn_asteroid(pos, GAME.ENTITY_ASTEROID_BIG)
+
+                    while (self.collide_group_and_entity(list(self.player_entities.values()), asteroid) or
+                           self.collide_group_and_entity(self.bullets, asteroid)):
+                        # Choose a different random spot
+                        asteroid.position = self.random_position_on_screen()
             
             # if self.test_auto_spawn_ticks >= 3000:
                 # self.test_auto_spawn_ticks = 0
@@ -164,12 +170,16 @@ class GameServer(GameModule, Thread):
 
         super().update()
     
+    def random_position_on_screen(self, margin=0):
+        return [random.randrange(margin, GAME.WIDTH-margin), random.randrange(margin, GAME.HEIGHT-margin)]
+
+    
     def spawn_asteroid(self, pos, kind):
         # Spawn an asteroid in a random spot
         rot = random.randrange(360)
         vel = [random.uniform(25, 75)*random.choice([-1, 1]), random.uniform(25, 75)*random.choice([-1, 1])]
         avel = random.uniform(15, 150)*random.choice([-1, 1])
-        self.create_entity(kind, pos, rot, vel, avel)
+        return self.create_entity(kind, pos, rot, vel, avel)
 
     def collide_group_and_entity(self, group, other):
         original_len = len(group)

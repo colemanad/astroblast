@@ -44,7 +44,7 @@ class GameServer(GameModule, Thread):
         for x in range(100):
             self.unused_entities.append(Entity())
         self.asteroids = []
-        self.bullets = []
+        self.bullets = {}
 
         self.player_entities = {}
 
@@ -52,7 +52,7 @@ class GameServer(GameModule, Thread):
         self.game_state = GAME.STATE_IN_GAME
         self.client_states = {}
         self.input_states = {}
-        self.client_points = {}
+        self.client_scores = {}
         self.client_lives = {}
 
     def run(self):
@@ -70,6 +70,16 @@ class GameServer(GameModule, Thread):
         self.client_lives[client_id] = new_lives
         self.send_msg(MESSAGES.UPDATELIVES, client_id, (MSGCONTENT.PLAYER_LIVES, new_lives))
 
+    def set_client_score(self, client_id, new_score):
+        self.client_scores[client_id] = new_score
+        self.send_msg(MESSAGES.UPDATESCORE, client_id, (MSGCONTENT.PLAYER_SCORE, new_score))
+    
+    def all_bullets(self):
+        bullets = []
+        for sb in self.bullets.values():
+            for b in sb:
+                bullets.append(b)
+        return bullets
     
     def send_global_msg(self, msg_type, *content):
         msg_content = self.prepare_msg(*content)
@@ -93,7 +103,8 @@ class GameServer(GameModule, Thread):
             self.input_states[sender_id] = ClientInputState(sender_id)
             self.set_client_state(sender_id, GAME.STATE_GAME_START)
             self.set_client_lives(sender_id, 3)
-            self.client_points[sender_id] = 0
+            self.set_client_score(sender_id, 0)
+            self.bullets[sender_id] = []
             # Tell new client about all existing entities
             for e in self.entities.values():
                 self.send_msg(MESSAGES.CREATE_ENTITY, sender_id, (MSGCONTENT.ENTITY_ID, e.entity_id), (MSGCONTENT.ENTITY_TYPE, e.entity_type), (MSGCONTENT.X_POS, e.position[0]), (MSGCONTENT.Y_POS, e.position[1]), (MSGCONTENT.ROTATION, e.rotation))
@@ -140,7 +151,7 @@ class GameServer(GameModule, Thread):
             # Temporarily boost radius by 3x to make extra room around newly-spawned player
             pship.radius *= 3
             while (self.collide_group_and_entity(self.asteroids, pship, False) or
-                    self.collide_group_and_entity(self.bullets, pship, False)):
+                    self.collide_group_and_entity(self.all_bullets(), pship, False)):
                     # Choose a different random spot
                     pship.position = self.random_position_on_screen(100)
             pship.radius /= 3
@@ -214,30 +225,23 @@ class GameServer(GameModule, Thread):
                             input_state.shoot = False
                             self.set_client_state(input_state.client_id, GAME.STATE_IN_GAME)
                             self.set_client_lives(input_state.client_id, 3)
-                            self.client_points[input_state.client_id] = 0
+                            self.set_client_score(input_state.client_id, 0)
                             self.spawn_player(input_state.client_id)
+                            self.populate_asteroids(5, True)
 
             # In Python, an empty sequence type (such as a list) evaluates as False
             if not self.asteroids:
                 # TODO: Increase number of big asteroids each round
-                for x in range(5):
-                    # Spawn an asteroid in a random spot
-                    pos = self.random_position_on_screen()
-                    asteroid = self.spawn_asteroid(pos, GAME.ENTITY_ASTEROID_BIG)
-                    # Temporarily boost radius of asteroid by 2x to avoid bad spawning locations
-                    asteroid.radius *= 2
-                    while (self.collide_group_and_entity(list(self.player_entities.values()), asteroid, False) or
-                           self.collide_group_and_entity(self.bullets, asteroid, False)):
-                        # Choose a different random spot
-                        asteroid.position = self.random_position_on_screen()
-                    asteroid.radius /= 2
+                self.populate_asteroids(4)
 
             # Asteroid-bullet collisions
-            self.collide_groups(self.asteroids, self.bullets)
+            for client_id, bullets in self.bullets.items():
+                collisions = self.collide_groups(self.asteroids, bullets)
+                self.set_client_score(client_id, self.client_scores[client_id] + collisions * 10)
 
             # Player-asteroid and Player-bullet collisions
             self.collide_groups(self.asteroids, list(self.player_entities.values()))
-            self.collide_groups(list(self.player_entities.values()), self.bullets)
+            self.collide_groups(list(self.player_entities.values()), self.all_bullets())
 
             # Update entities
             to_destroy = []
@@ -283,6 +287,26 @@ class GameServer(GameModule, Thread):
     def random_position_on_screen(self, margin=0):
         return [random.randrange(margin, GAME.WIDTH-margin), random.randrange(margin, GAME.HEIGHT-margin)]
 
+    def populate_asteroids(self, num, clear_existing=False):
+        if clear_existing:
+            to_remove = []
+            for a in self.asteroids:
+                to_remove.append(a)
+            for a in to_remove:
+                self.entities.pop(a.entity_id)
+                self.asteroids.remove(a)
+                self.send_global_msg(MESSAGES.DESTROY_ENTITY, (MSGCONTENT.ENTITY_ID, a.entity_id))
+        for x in range(num):
+            # Spawn an asteroid in a random spot
+            pos = self.random_position_on_screen()
+            asteroid = self.spawn_asteroid(pos, GAME.ENTITY_ASTEROID_BIG)
+            # Temporarily boost radius of asteroid by 2x to avoid bad spawning locations
+            asteroid.radius *= 2
+            while (self.collide_group_and_entity(list(self.player_entities.values()), asteroid, False) or
+                    self.collide_group_and_entity(self.all_bullets(), asteroid, False)):
+                # Choose a different random spot
+                asteroid.position = self.random_position_on_screen()
+            asteroid.radius /= 2
     
     def spawn_asteroid(self, pos, kind):
         # Spawn an asteroid in a random spot
@@ -351,7 +375,7 @@ class GameServer(GameModule, Thread):
             e.add_component(components.BulletComponent())
             e.radius = 5
             e.lifetime = 3
-            self.bullets.append(e)
+            self.bullets[player_id].append(e)
             
         elif entity_type == GAME.ENTITY_EXPLOSION:
             e.add_component(components.ExplosionComponent(0.5))
@@ -395,7 +419,7 @@ class GameServer(GameModule, Thread):
                 self.create_entity(GAME.ENTITY_EXPLOSION, e.position.copy())
             
             elif e.entity_type == GAME.ENTITY_BULLET:
-                self.bullets.remove(e)
+                self.bullets[e.player_id].remove(e)
 
             self.send_global_msg(MESSAGES.DESTROY_ENTITY, (MSGCONTENT.ENTITY_ID, e.entity_id))
             self.dispatch.release_id(e.entity_id)

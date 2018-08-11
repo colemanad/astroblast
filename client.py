@@ -209,6 +209,11 @@ class GameClient(GameModule):
             if self.assert_msg_content(msg_type, msg_content, expected_content):
                 self.player_lives = msg_content[MSGCONTENT.PLAYER_LIVES]
         
+        elif msg_type == MESSAGES.UPDATESCORE:
+            expected_content = MSGCONTENT.PLAYER_SCORE
+            if self.assert_msg_content(msg_type, msg_content, expected_content):
+                self.player_score = msg_content[MSGCONTENT.PLAYER_SCORE]
+        
         elif msg_type == MESSAGES.CHANGE_STATE:
             expected_content = MSGCONTENT.GAME_STATE
             if self.assert_msg_content(msg_type, msg_content, expected_content):
@@ -294,9 +299,13 @@ class GameClient(GameModule):
         if self.game_state == GAME.STATE_IN_GAME:
             lives_label = normal_font.render("Lives: %d" % self.player_lives, 1, (255, 255, 0))
             self.screen.blit(lives_label, (50, 20))
+            score_label = normal_font.render("Score: %d" % self.player_score, 1, (255, 255, 0))
+            self.screen.blit(score_label, (50, 40))
         if self.game_state == GAME.STATE_GAME_START:
             lives_label = normal_font.render("Lives: %d" % self.player_lives, 1, (255, 255, 0))
             self.screen.blit(lives_label, (50, 20))
+            score_label = normal_font.render("Score: %d" % self.player_score, 1, (255, 255, 0))
+            self.screen.blit(score_label, (50, 40))
             start_label = normal_font.render("Press Fire (Spacebar)", 1, (255, 255, 0))
             self.screen.blit(start_label, (GAME.WIDTH/2 - 50, GAME.HEIGHT/2))
         if self.game_state == GAME.STATE_GAME_OVER:

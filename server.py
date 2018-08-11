@@ -52,6 +52,8 @@ class GameServer(GameModule, Thread):
         self.game_state = GAME.STATE_IN_GAME
         self.client_states = {}
         self.input_states = {}
+        self.client_points = {}
+        self.client_lives = {}
 
     def run(self):
         """Gets called at thread start"""
@@ -63,6 +65,11 @@ class GameServer(GameModule, Thread):
     def set_client_state(self, client_id, new_state):
         self.client_states[client_id] = new_state
         self.send_msg(MESSAGES.CHANGE_STATE, client_id, (MSGCONTENT.GAME_STATE, int(new_state.value)))
+    
+    def set_client_lives(self, client_id, new_lives):
+        self.client_lives[client_id] = new_lives
+        self.send_msg(MESSAGES.UPDATELIVES, client_id, (MSGCONTENT.PLAYER_LIVES, new_lives))
+
     
     def send_global_msg(self, msg_type, *content):
         msg_content = self.prepare_msg(*content)
@@ -85,6 +92,8 @@ class GameServer(GameModule, Thread):
             # Create input state for client
             self.input_states[sender_id] = ClientInputState(sender_id)
             self.set_client_state(sender_id, GAME.STATE_GAME_START)
+            self.set_client_lives(sender_id, 3)
+            self.client_points[sender_id] = 0
             # Tell new client about all existing entities
             for e in self.entities.values():
                 self.send_msg(MESSAGES.CREATE_ENTITY, sender_id, (MSGCONTENT.ENTITY_ID, e.entity_id), (MSGCONTENT.ENTITY_TYPE, e.entity_type), (MSGCONTENT.X_POS, e.position[0]), (MSGCONTENT.Y_POS, e.position[1]), (MSGCONTENT.ROTATION, e.rotation))
@@ -200,6 +209,14 @@ class GameServer(GameModule, Thread):
                             self.set_client_state(input_state.client_id, GAME.STATE_IN_GAME)
                             self.spawn_player(input_state.client_id)
 
+                    elif client_state == GAME.STATE_GAME_OVER:
+                        if input_state.shoot:
+                            input_state.shoot = False
+                            self.set_client_state(input_state.client_id, GAME.STATE_IN_GAME)
+                            self.set_client_lives(input_state.client_id, 3)
+                            self.client_points[input_state.client_id] = 0
+                            self.spawn_player(input_state.client_id)
+
             # In Python, an empty sequence type (such as a list) evaluates as False
             if not self.asteroids:
                 # TODO: Increase number of big asteroids each round
@@ -237,7 +254,11 @@ class GameServer(GameModule, Thread):
             for e in to_destroy:
                 if e.entity_type == GAME.ENTITY_PLAYERSHIP:
                     # TODO: Lives/game over
-                    self.set_client_state(e.player_id, GAME.STATE_GAME_START)
+                    self.set_client_lives(e.player_id, self.client_lives[e.player_id]-1)
+                    if self.client_lives[e.player_id] < 0:
+                        self.set_client_state(e.player_id, GAME.STATE_GAME_OVER)
+                    else:
+                        self.set_client_state(e.player_id, GAME.STATE_GAME_START)
                 self.destroy_entity(e.entity_id)
             
             to_destroy.clear()

@@ -75,6 +75,8 @@ class GameClient(GameModule):
 
         self.player_entity_id = -1
         self.player_alive = False
+        self.player_lives = 0
+        self.player_score = 0
 
         # self.game_state = GAME.STATE_TITLE
         self.game_state = GAME.STATE_GAME_START
@@ -202,11 +204,15 @@ class GameClient(GameModule):
                 else:
                     self.log('Received message to update position for entity %d, but sprite does not exist' % entity_id)
         
+        elif msg_type == MESSAGES.UPDATELIVES:
+            expected_content = MSGCONTENT.PLAYER_LIVES
+            if self.assert_msg_content(msg_type, msg_content, expected_content):
+                self.player_lives = msg_content[MSGCONTENT.PLAYER_LIVES]
+        
         elif msg_type == MESSAGES.CHANGE_STATE:
             expected_content = MSGCONTENT.GAME_STATE
             if self.assert_msg_content(msg_type, msg_content, expected_content):
                 self.game_state = GAME.lookupByValue(str(msg_content[MSGCONTENT.GAME_STATE]))
-                # print(self.game_state.name)
 
     def disconnect(self, should_send_signal=True):
         """Disconnect this client from a server"""
@@ -283,10 +289,21 @@ class GameClient(GameModule):
         self.sprites.draw(self.screen)
 
         # Text
-        normal_font = pygame.font.SysFont("Helvetica", 20)
+        normal_font = pygame.font.SysFont("Helvetica", 20, 1)
+        larger_font = pygame.font.SysFont("Helvetica", 30, 1)
+        if self.game_state == GAME.STATE_IN_GAME:
+            lives_label = normal_font.render("Lives: %d" % self.player_lives, 1, (255, 255, 0))
+            self.screen.blit(lives_label, (50, 20))
         if self.game_state == GAME.STATE_GAME_START:
+            lives_label = normal_font.render("Lives: %d" % self.player_lives, 1, (255, 255, 0))
+            self.screen.blit(lives_label, (50, 20))
             start_label = normal_font.render("Press Fire (Spacebar)", 1, (255, 255, 0))
-            self.screen.blit(start_label, (350, 300))
+            self.screen.blit(start_label, (GAME.WIDTH/2 - 50, GAME.HEIGHT/2))
+        if self.game_state == GAME.STATE_GAME_OVER:
+            game_over_label = larger_font.render("Game Over!", 1, (255, 255, 0))
+            press_fire_label = normal_font.render("Press Fire (Spacebar)", 1, (255, 255, 0))
+            self.screen.blit(game_over_label, (GAME.WIDTH/2 - 35, GAME.HEIGHT/2 - 30))
+            self.screen.blit(press_fire_label, (GAME.WIDTH/2 - 50, GAME.HEIGHT/2))
 
 
         # Display surface to the screen

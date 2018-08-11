@@ -69,10 +69,11 @@ class MESSAGES(Values):
     CREATE_ENTITY = ValueConstant('250')
     DESTROY_ENTITY = ValueConstant('251')
 
-    ENTITY_SETVISIBLE = ValueConstant('252')
-
     UPDATEPOS = ValueConstant('252')    # Update client-side entity position
     UPDATEROT = ValueConstant('253')    # Update client-side entity rotation
+
+    UPDATELIVES = ValueConstant('260')
+    UPDATESCORE = ValueConstant('261')
 
     # Client->Server messages
     REQCONNECT = ValueConstant('300')   # Request connection to server
@@ -110,6 +111,8 @@ class MSGCONTENT(Values):
     ENTITY_ID = ValueConstant('13')
     ENTITY_TYPE = ValueConstant('14')
     PLAYER_ID = ValueConstant('15')
+    PLAYER_LIVES = ValueConstant('16')
+    PLAYER_SCORE = ValueConstant('17')
 
     GAME_STATE = ValueConstant('50')
 

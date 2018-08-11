@@ -76,7 +76,8 @@ class GameClient(GameModule):
         self.player_entity_id = -1
         self.player_alive = False
 
-        self.game_state = GAME.STATE_TITLE
+        # self.game_state = GAME.STATE_TITLE
+        self.game_state = GAME.STATE_GAME_START
 
     def quit(self):
         """Sends quit message and halts client"""
@@ -200,6 +201,12 @@ class GameClient(GameModule):
                     e.position = pos
                 else:
                     self.log('Received message to update position for entity %d, but sprite does not exist' % entity_id)
+        
+        elif msg_type == MESSAGES.CHANGE_STATE:
+            expected_content = MSGCONTENT.GAME_STATE
+            if self.assert_msg_content(msg_type, msg_content, expected_content):
+                self.game_state = GAME.lookupByValue(str(msg_content[MSGCONTENT.GAME_STATE]))
+                # print(self.game_state.name)
 
     def disconnect(self, should_send_signal=True):
         """Disconnect this client from a server"""
@@ -235,8 +242,6 @@ class GameClient(GameModule):
                     self.send_msg(MESSAGES.REQCONNECT, self.local_server_id)
                 elif event.key == pygame.K_BACKSPACE:
                     self.disconnect()
-                elif event.key == pygame.K_RETURN:
-                    self.send_msg(MESSAGES.SIGNAL_PLAYER_READY, self.local_server_id)
                 elif event.key == pygame.K_LEFT:
                     self.send_msg(MESSAGES.INPUT_LEFT_DOWN, self.local_server_id)
                 elif event.key == pygame.K_RIGHT:
@@ -276,6 +281,13 @@ class GameClient(GameModule):
         # self.ship_sprite.rotation += 10
         self.sprites.update()
         self.sprites.draw(self.screen)
+
+        # Text
+        normal_font = pygame.font.SysFont("Helvetica", 20)
+        if self.game_state == GAME.STATE_GAME_START:
+            start_label = normal_font.render("Press Fire (Spacebar)", 1, (255, 255, 0))
+            self.screen.blit(start_label, (350, 300))
+
 
         # Display surface to the screen
         pygame.display.flip()

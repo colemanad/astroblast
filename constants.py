@@ -50,9 +50,8 @@ class GAME(Values):
     STATE_MULTIPLAYER_MENU = ValueConstant('201')
     STATE_GAME_LOADING = ValueConstant('202')
     STATE_GAME_START = ValueConstant('203')
-    STATE_IN_GAME_SINGLE = ValueConstant('204')
-    STATE_IN_GAME_MULTI = ValueConstant('205')
-    STATE_GAME_OVER = ValueConstant('206')
+    STATE_IN_GAME = ValueConstant('204')
+    STATE_GAME_OVER = ValueConstant('205')
 
 
 class MESSAGES(Values):
@@ -111,6 +110,8 @@ class MSGCONTENT(Values):
     ENTITY_ID = ValueConstant('13')
     ENTITY_TYPE = ValueConstant('14')
     PLAYER_ID = ValueConstant('15')
+
+    GAME_STATE = ValueConstant('50')
 
     # Game state
     X_POS = ValueConstant('100')

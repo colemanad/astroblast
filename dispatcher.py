@@ -117,6 +117,8 @@ class Dispatcher(Thread, GameModule):
             self.out_queue.task_done()
 
             recipient_id = msg_content.get(MSGCONTENT.RECIPIENT_ID)
+            if self.client_only_mode:
+                recipient_id = GAME.LOCAL_CLIENT_ID
             if recipient_id is not None:
                 self.lock.acquire()
                 if recipient_id in self.out_queues:

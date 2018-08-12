@@ -28,3 +28,6 @@ $RECYCLE.BIN/
 
 # pipenv
 Pipfile*
+
+# python
+__pycache__/

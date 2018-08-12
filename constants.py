@@ -9,7 +9,7 @@
 #   The assets have been modified.
 #   https://opengameart.org/content/rocks-ships-stars-gold-and-more
 
-from constantly import ValueConstant, Values
+from constantly import ValueConstant, Values, NamedConstant, Names
 
 class GAME(Values):
     """pyGame-centric constants"""
@@ -125,3 +125,7 @@ class MSGCONTENT(Values):
     X_POS = ValueConstant('100')
     Y_POS = ValueConstant('101')
     ROTATION = ValueConstant('102')
+
+class NETWORK(Names):
+    MODE_SERVER = NamedConstant()
+    MODE_CLIENT = NamedConstant()

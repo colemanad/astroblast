@@ -45,13 +45,14 @@ def load_image_all_rotations(name, colorkey=None):
 
 class GameClient(GameModule):
     """Contains game client and pyGame functionality."""
-    def __init__(self, inQueue, outQueue, local_server_instance):
+    def __init__(self, inQueue, outQueue, local_server_instance, dispatch):
         GameModule.__init__(self, inQueue, outQueue)
         self.name = 'Client'
         self.module_id = int(GAME.LOCAL_CLIENT_ID.value)
         self.server_id = int(GAME.INVALID_ID.value)
         self.local_server_id = int(GAME.LOCAL_SERVER_ID.value)
         self.local_server_instance = local_server_instance
+        self.dispatch = dispatch
 
         self.connected = False
 

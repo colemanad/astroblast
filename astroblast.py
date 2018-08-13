@@ -9,75 +9,47 @@
 #   The assets have been modified.
 #   https://opengameart.org/content/rocks-ships-stars-gold-and-more
 
-from queue import Queue
-import cProfile, time
+import time
 
 import pygame
 
-from dispatcher import Dispatcher
 from client import GameClient
-from server import GameServer
 
 
 def main():
     """Application entry point"""
-    profile = cProfile.Profile()
-    try:
-        # profile.enable()
+    # Instantiate client module
+    client = GameClient()
 
-        dispatch_queue = Queue()
-        remote_queue = Queue()
-        # queue of messages for the server
-        server_queue = Queue()
-        # queue of messages for the client
-        local_client_queue = Queue()
+    # Timing variables
+    ms_per_frame = 1000.0 / 60.0
+    last_ticks = 0
+    ticks_since_last_update = 0
 
-        dispatch = Dispatcher(dispatch_queue, server_queue, local_client_queue, remote_queue)
+    running = True
+    while running:
+        # Timing logic
+        current_ticks = pygame.time.get_ticks()
+        diff = current_ticks - last_ticks
+        ticks_since_last_update += diff
 
-        # Instantiate the server and client modules
-        server = GameServer(server_queue, dispatch)
-        client = GameClient(local_client_queue, dispatch_queue, server)
+        if ticks_since_last_update >= ms_per_frame:
+            ticks_since_last_update = 0
+            # Check & process incoming messages to the client
+            client.check_msgs()
+            # Update client-side game state / Process user input
+            client.update()
 
-        dispatch.start()
+            last_ticks = current_ticks
+        else:
+            time.sleep(diff/1000.0)
 
-        ms_per_frame = 1000.0 / 60.0
-        last_ticks = 0
-        ticks_since_last_update = 0
+        # Shut down if the client quits
+        if not client.running:
+            running = False
 
-        running = True
-        while running:
-            current_ticks = pygame.time.get_ticks()
-            diff = current_ticks - last_ticks
-            ticks_since_last_update += diff
-            # print('c:%d l:%d d:%d u:%d' % (current_ticks, last_ticks, diff, ticks_since_last_update))
-
-            if ticks_since_last_update >= ms_per_frame:
-                ticks_since_last_update = 0
-                # Check & process incoming messages to the client
-                client.check_msgs()
-                # Update client-side game state / Process user input
-                client.update()
-
-                last_ticks = current_ticks
-            else:
-                # print('sleep')
-                time.sleep(diff/1000.0)
-
-            # Shut down if the client quits
-            if not client.running:
-                running = False
-                # Make sure the server quits too
-                if server.running:
-                    server.running = False
-
-        # Clean-up pyGame
-        print("Exiting...")
-
-        # profile.disable()
-    
-    finally:
-        # profile.print_stats('cumulative')
-        pass
+    # Clean-up pyGame
+    print("Exiting...")
 
 if __name__ == '__main__':
     main()

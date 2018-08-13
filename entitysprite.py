@@ -14,6 +14,7 @@ import pygame
 from constants import GAME
 
 class SpriteInfo():
+    """Packages together a few bits of data about a sprite/entity"""
     def __init__(self, entity_type, frames, max_frame, frame_ticks):
         self.entity_type = entity_type
         self.frames = frames
@@ -30,6 +31,8 @@ class EntitySprite(pygame.sprite.Sprite):
         self.initialize(info, initial_pos, initial_rot, entity_id, entity_type)
 
     def initialize(self, info, initial_pos=(0, 0), initial_rot=0, entity_id=0, entity_type=GAME.ENTITY_NONE):
+        """Resets the sprite to the specified settings"""
+
         self.current_frame = 0
         self.last_ticks = pygame.time.get_ticks()
         if info is not None:

@@ -9,12 +9,14 @@
 #   The assets have been modified.
 #   https://opengameart.org/content/rocks-ships-stars-gold-and-more
 
-from constants import GAME, MESSAGES, MSGCONTENT
 import queue
+
+from constants import GAME, MESSAGES, MSGCONTENT
+from helperfuncs import split_ip, rejoin_ip
 
 # Base class for server & client modules
 class GameModule():
-    """Base class for the client and server modules"""
+    """Base class for the dispatch, client, and server modules"""
     def __init__(self, in_queue, out_queue):
         # Name is used for logging
         self.name = "unknown"
@@ -25,7 +27,8 @@ class GameModule():
         # Queue of outgoing messages
         self.out_queue = out_queue
 
-        self.module_id = int(GAME.INVALID_ID.value)
+        self.module_id = GAME.INVALID_ID
+        self.addr = '127.0.0.1'     # Default to localhost
 
     def cleanup(self):
         """Stub method for cleanup before termination"""
@@ -45,8 +48,9 @@ class GameModule():
             self.log("quitting")
     
     def prepare_msg(self, *content):
+        """Prepare an outgoing message by adding the sender ID to it"""
         content_list = list(content)
-        if self.module_id != int(GAME.DISPATCHER_ID.value):
+        if self.module_id != GAME.DISPATCHER_ID:
             content_list.insert(0, (MSGCONTENT.ID, self.module_id))
 
         # Convert *args to a dictionary
@@ -57,29 +61,17 @@ class GameModule():
         return msg_content
 
     def send_msg(self, msg_type, recipient_id, *content):
-        """Send a message to counterpart (i.e., the client or server)"""
-        # TODO: Update message format to include recipient ID
-        # Message format:
-        #   msg = (type, content)
-        #   type is a constant from MESSAGES
-        #   content is a list of pairs of integers
-        #
-        # TODO: Entity IDs
-        # example: updating entity position client-side
-        #   msg = (UPDATEPOS, [(ID, 12345), (X_POS, 14), (Y_POS, 15)])
-        #   type = update position
-        #   content = ID 12345, X = 14, Y = 15
-        # (ID, X_POS, and Y_POS are all symbolic constants in constants.py)
+        """Send a message to another module (e.g. server, client, dispatch)"""
 
         msg_content = self.prepare_msg(*content)
         msg_content[MSGCONTENT.RECIPIENT_ID] = recipient_id
 
         msg = (msg_type, msg_content)
         self.out_queue.put(msg, True)
-        # self.log('sending %s from %d to %d' % (msg_type.name, msg_content[MSGCONTENT.ID], recipient_id))
     
     def check_msgs(self):
         """Process all incoming messages"""
+
         # Check queue for new messages & respond to each
         while True:
             try:
@@ -87,7 +79,6 @@ class GameModule():
                 self.in_queue.task_done()
 
                 sender_id = msg_content.get(MSGCONTENT.ID, None)
-                # print("%s: received %s from %d to %d" % (self.name, msg_type.name, sender_id, msg_content[MSGCONTENT.RECIPIENT_ID]))
                 if sender_id is not None:
                     self.process_msg(msg_type, sender_id, msg_content)
 
@@ -99,12 +90,16 @@ class GameModule():
             except queue.Empty:
                 break
 
+    # Sometimes useful, but slows the game down very badly
     def log(self, msg):
         """Print a log message to stdout, along with the module's ID"""
+
         # print("%s(%d): %s" % (self.name, self.module_id, msg))
         pass
     
     def assert_msg_content(self, msg_type, msg_content, *expected_content):
+        """Make sure that a given msg_content has all of the sections you're looking for"""
+
         found_all_expected_content = True
         for content_type in expected_content:
             if msg_content.get(content_type, None) is None:

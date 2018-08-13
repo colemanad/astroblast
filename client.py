@@ -72,6 +72,7 @@ class GameClient(GameModule):
         self.connected = False
 
         # Initialize pyGame
+        pygame.mixer.pre_init()
         pygame.init()
         self.screen = pygame.display.set_mode((GAME.WIDTH, GAME.HEIGHT))
         pygame.display.set_caption('AstroBlast!')
@@ -122,6 +123,16 @@ class GameClient(GameModule):
                        'bullet_g':[load_image_all_rotations('bullet_g.png')],
                        'explosion':[load_image_all_rotations('explosion_1.png'),
                                     load_image_all_rotations('explosion_2.png')]}
+
+        self.background = load_image('bg5.jpg')[0]
+
+        # Sounds
+        self.thrust_sound = pygame.mixer.Sound(path.join(ASSETSDIR, 'thrust.ogg'))
+        self.thrust_sound.set_volume(1)
+        self.shot_sound = pygame.mixer.Sound(path.join(ASSETSDIR, 'shot.wav'))
+        self.shot_sound.set_volume(0.75)
+        self.explode_sound = pygame.mixer.Sound(path.join(ASSETSDIR, 'explode.wav'))
+        self.explode_sound.set_volume(1)
 
         self.entities = {}
         self.unused_entities = []
@@ -220,12 +231,14 @@ class GameClient(GameModule):
                     e.initialize(info, pos, rot, entity_id, entity_type)
                     self.entities[e.entity_id] = e
                     self.sprites.add(e)
+                    self.shot_sound.play()
 
                 elif entity_type == GAME.ENTITY_EXPLOSION:
                     info = SpriteInfo(entity_type, self.frames['explosion'], 1, 500)
                     e.initialize(info, pos, rot, entity_id, entity_type)
                     self.entities[e.entity_id] = e
                     self.sprites.add(e)
+                    self.explode_sound.play()
 
         # Server destroyed an entity
         elif msg_type == MESSAGES.DESTROY_ENTITY:
@@ -396,6 +409,9 @@ class GameClient(GameModule):
                         pship = self.entities.get(self.player_entity_id)
                         if pship is not None:
                             pship.current_frame = 1
+                            self.thrust_sound.play()
+                        else:
+                            self.thrust_sound.stop()
                         self.send_msg(MESSAGES.INPUT_THRUST_DOWN, self.server_id)
                     elif event.key == pygame.K_SPACE:
                         self.send_msg(MESSAGES.INPUT_SHOOT_DOWN, self.server_id)
@@ -409,6 +425,7 @@ class GameClient(GameModule):
                         pship = self.entities.get(self.player_entity_id)
                         if pship is not None:
                             pship.current_frame = 0
+                        self.thrust_sound.stop()
                         self.send_msg(MESSAGES.INPUT_THRUST_UP, self.server_id)
                     elif event.key == pygame.K_SPACE:
                         self.send_msg(MESSAGES.INPUT_SHOOT_UP, self.server_id)
@@ -422,6 +439,9 @@ class GameClient(GameModule):
         
         # Clear surface
         self.screen.fill(GAME.BLACK)
+
+        # Draw background
+        self.screen.blit(self.background, (0, 0))
 
         # Draw sprites on the surface
         # self.ship_sprite.rotation += 10
@@ -445,6 +465,11 @@ class GameClient(GameModule):
         # Draw labels
         normal_font = pygame.font.SysFont('Helvetica, Arial', 20, 1)
         larger_font = pygame.font.SysFont('Helvetica, Arial', 30, 1)
+        huge_font = pygame.font.SysFont('Helvetica, Arial,', 150, 1)
+        if (self.game_state == GAME.STATE_TITLE):
+            width, height = huge_font.size('AstroBlast!')
+            title_label = huge_font.render('AstroBlast!', 1, (0, 255, 0))
+            self.screen.blit(title_label, (GAME.WIDTH/2 - width/2, height))
         if (self.game_state == GAME.STATE_IN_GAME or self.game_state == GAME.STATE_GAME_START or
             self.game_state == GAME.STATE_PLAYER_DIED):
             width, height = normal_font.size('Lives:')
@@ -462,7 +487,6 @@ class GameClient(GameModule):
             width, height = larger_font.size('Game Over!')
             game_over_label = larger_font.render('Game Over!', 1, (255, 255, 0))
             self.screen.blit(game_over_label, (GAME.WIDTH/2 - width/2, GAME.HEIGHT/2 - 40))
-
 
         # Display surface to the screen
         pygame.display.flip()

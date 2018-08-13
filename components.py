@@ -15,6 +15,7 @@ from constants import GAME
 import helperfuncs
 
 class TestComponent():
+    """Just a component for testing out the entity-component model"""
     def update(self, parent, delta_time):
         # Update position
         parent.position[0] = (parent.position[0] + parent.velocity[0]*delta_time) % GAME.WIDTH
@@ -29,6 +30,7 @@ class TestComponent():
                 parent.rotation += 360
 
 class PlayerComponent():
+    """Contains (most of) the behavior specific to a the player ship"""
 
     def update(self, parent, delta_time):
         avel = 240
@@ -51,6 +53,7 @@ class PlayerComponent():
             parent.velocity[0] += parent.forward[0] * acceleration
             parent.velocity[1] += parent.forward[1] * acceleration
         
+        # Apply friction
         parent.velocity[0] *= (1 - friction)
         parent.velocity[1] *= (1 - friction)
 
@@ -59,6 +62,8 @@ class PlayerComponent():
         parent.position[1] = (parent.position[1] + parent.velocity[1]*delta_time) % GAME.WIDTH
 
 class AsteroidComponent():
+    """Contains the behavior for an asteroid."""
+
     def update(self, parent, delta_time):
         # Update position
         parent.position[0] = (parent.position[0] + parent.velocity[0]*delta_time) % GAME.WIDTH
@@ -73,12 +78,14 @@ class AsteroidComponent():
                 parent.rotation += 360
 
 class BulletComponent():
+    """Contains the behavior for a bullet"""
     def update(self, parent, delta_time):
         # Update position
         parent.position[0] = (parent.position[0] + parent.velocity[0]*delta_time) % GAME.WIDTH
         parent.position[1] = (parent.position[1] + parent.velocity[1]*delta_time) % GAME.WIDTH
 
 class ExplosionComponent():
+    """Contains the behavior (animation, that is) of an explosion"""
     def __init__(self, lifetime):
         self.lifetime = lifetime
         self.elapsed = 0
